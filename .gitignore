@@ -1,0 +1,5 @@
+build/
+results/
+.python-version
+venv/
+.idea/

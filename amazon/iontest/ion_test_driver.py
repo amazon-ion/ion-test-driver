@@ -53,7 +53,7 @@ Options:
 import os
 import shutil
 from io import FileIO
-from subprocess import check_call, check_output, call
+from subprocess import check_call, check_output, call, Popen, PIPE
 import sys
 import six
 from amazon.ion import simpleion
@@ -61,7 +61,7 @@ from amazon.ion.core import IonType
 from amazon.ion.simple_types import IonPySymbol, IonPyList
 from amazon.ion.util import Enum
 from docopt import docopt
-
+from six import BytesIO
 
 """
 Generates a report according to the following schema-by-example. Two versions will be generated: one according to the
@@ -216,7 +216,7 @@ def git_clone_revision(name, location, revision):
         if not os.path.exists(build_dir):
             shutil.move(tmp_dir, build_dir)
         else:
-            print(build_dir + " already present. Using existing source.")
+            print("%s already present. Using existing source." % build_dir)
         return build_dir
     finally:
         shutil.rmtree(tmp_dir_root)
@@ -236,6 +236,8 @@ class IonImplementation:
 
     @property
     def identifier(self):
+        if self.__build_dir is None:
+            raise ValueError('Implementation %s must be installed before receiving an identifier.' % self.__name)
         return os.path.split(self.__build_dir)[-1]
 
     def install(self):
@@ -246,17 +248,13 @@ class IonImplementation:
 
     def execute(self, *args):
         if self.__build_dir is None:
-            raise ValueError('Implementation ' + self.__name + ' has not been built.')
+            raise ValueError('Implementation %s has not been built.' % self.__name)
         if self.__executable is None:
             self.__executable = os.path.abspath(os.path.join(self.__build_dir, self.__build.execute))
         if not os.path.isfile(self.__executable):
-            raise ValueError('Executable for ' + self.__name + ' does not exist.')
-        return call((self.__executable,) + args)
-
-
-def install_all(impls):
-    for impl in impls:
-        impl.install()
+            raise ValueError('Executable for %s does not exist.' % self.__name)
+        _, stderr = Popen((self.__executable,) + args, stderr=PIPE, shell=COMMAND_SHELL).communicate()
+        return stderr
 
 
 class TestResult:
@@ -320,17 +318,20 @@ class TestFailure(dict):
         self['result'] = IonPySymbol.from_value(IonType.SYMBOL, 'PASS')
 
     def __set_read_write_error(self, key, error_report):
-        error_report.annotations = (IonPySymbol.from_value(IonType.SYMBOL, 'ErrorReport'),)  # TODO figure out why this isn't written.
+        error_report.ion_annotations = (IonPySymbol.from_value(IonType.SYMBOL, 'ErrorReport'),)
         self[key] = error_report
         self['result'] = IonPySymbol.from_value(IonType.SYMBOL, 'FAIL')
 
     def __set_comparison_failure(self, key, comparison_report, error_report):
-        comparison_report.annotations = (IonPySymbol.from_value(IonType.SYMBOL, 'ComparisonReport'),)
-        error_report.annotations = (IonPySymbol.from_value(IonType.SYMBOL, 'ErrorReport'),)
-        self[key] = {
-            'errors': error_report,
-            'failures': comparison_report
-        }
+        if comparison_report is None and error_report is None:
+            raise ValueError('Failed a comparison for %s for no apparent reason.' % key)
+        self[key] = {}
+        if comparison_report is not None:
+            comparison_report.ion_annotations = (IonPySymbol.from_value(IonType.SYMBOL, 'ComparisonReport'),)
+            self[key]['failures'] = comparison_report
+        if error_report is not None:
+            error_report.ion_annotations = (IonPySymbol.from_value(IonType.SYMBOL, 'ErrorReport'),)
+            self[key]['errors'] = error_report
         self['result'] = IonPySymbol.from_value(IonType.SYMBOL, 'FAIL')
 
     def error(self, result, is_read):
@@ -339,11 +340,15 @@ class TestFailure(dict):
 
     def fail_compare(self, compare_result, is_read):
         field = 'read_compare' if is_read else 'write_compare'
-        self.__set_comparison_failure(field, compare_result.comparison_report, compare_result.errors)
+        self.__set_comparison_failure(
+            field,
+            compare_result.comparison_report if compare_result.has_comparison_failures else None,
+            compare_result.errors if compare_result.has_errors else None
+        )
 
     @property
     def has_failure(self):
-        return self['result'] == 'FAIL'
+        return self['result'] == IonPySymbol.from_value(IonType.SYMBOL, 'FAIL')
 
 
 class TestType(Enum):
@@ -397,7 +402,25 @@ class TestFile:
         self.__results_root = os.path.join(results_root, self.short_path)
         self.__failures = {impl.identifier: TestFailure() for impl in ion_implementations}  # Initializes PASS results
         self.__ion_implementations = ion_implementations
-    
+
+    def __execute_with(self, ion_implementation, error_location, *args):
+        stderr = ion_implementation.execute(*args)
+        if len(stderr) != 0:
+            # Any output to stderr is likely caused by an uncaught error in the implementation under test. This forces a
+            # failure to avoid false negatives.
+            error_file = FileIO(error_location, 'wb')
+            try:
+                error = {
+                    'error_type': IonPySymbol.from_value(IonType.SYMBOL, 'STATE'),
+                    'message': 'Implementation %s produced stderr output "%s" for command %r.' % (
+                        ion_implementation.identifier, stderr.decode(), args
+                    ),
+                    'location': self.path
+                }
+                simpleion.dump(error, error_file, binary=False)
+            finally:
+                error_file.close()
+
     def __new_results_file(self, short_name, *dirs):
         results_dir = os.path.join(self.__results_root, *dirs)
         if not os.path.isdir(results_dir):
@@ -408,15 +431,17 @@ class TestFile:
         # Sample directory structure: results/good/one.ion/read/data/ion-c_abcd123.ion
         read_output = self.__new_results_file(ion_implementation.identifier + '.ion', 'read', 'data')
         read_errors = self.__new_results_file(ion_implementation.identifier + '.ion', 'read', 'errors')
-        ion_implementation.execute('process', '--error-report', read_errors, '--output',
-                                   read_output, '--output-format', 'events', self.path)
+        self.__execute_with(ion_implementation, read_errors,
+                            'process', '--error-report', read_errors, '--output', read_output, '--output-format',
+                            'events', self.path)
         result = TestResult(ion_implementation.identifier, read_output, read_errors)
         self.__read_results.append(result)
         return result
 
     def __compare(self, ion_implementation, compare_type, compare_result, inputs, is_read, is_sets=False):
-        ion_implementation.execute('compare', '--error-report', compare_result.error_location, '--output',
-                                   compare_result.output_location, '--comparison-type', compare_type, *inputs)
+        self.__execute_with(ion_implementation, compare_result.error_location,
+                            'compare', '--error-report', compare_result.error_location, '--output',
+                            compare_result.output_location, '--comparison-type', compare_type, *inputs)
         if not compare_result.has_errors and not compare_result.has_comparison_failures:
             if not is_sets and self.__type.compare_type != 'basic':
                 compare_result.reset()
@@ -471,9 +496,9 @@ class TestFile:
                                                            encoding, 'data')
                     write_errors = self.__new_results_file(read_result.impl_id + '.ion', write_output_root,
                                                            encoding, 'errors')
-                    ion_implementation.execute('process', '--error-report', write_errors, '--output',
-                                               write_output, '--output-format', encoding,
-                                               read_result.output_location)
+                    self.__execute_with(ion_implementation, write_errors,
+                                        'process', '--error-report', write_errors, '--output', write_output,
+                                        '--output-format', encoding, read_result.output_location)
                     self.__write_results.append(TestResult(ion_implementation.identifier, write_output, write_errors))
 
     def read(self):
@@ -621,7 +646,7 @@ def install_ion_tests(description):
 # Ion implementations hosted in Github. Local implementations may be tested using the `--implementation` argument,
 # and should not be added here.
 ION_IMPLEMENTATIONS = [
-    IonImplementation('ion-c', '/Users/greggt/Documents/workspace/ion-c', 'cli-integ'),  # TODO -> amzn:master once cli is merged
+    IonImplementation('ion-c', '/Users/greggt/Documents/workspace/ion-c', 'cli-integ-intnegzero-assertions'),  # TODO -> amzn:master once cli is merged
     # TODO add more Ion implementations here
 ]
 
@@ -641,7 +666,8 @@ def ion_test_driver(arguments):
         OUTPUT_ROOT = os.path.abspath(arguments['--output-dir'])
         if not os.path.exists(OUTPUT_ROOT):
             os.makedirs(OUTPUT_ROOT)
-        install_all(implementations)
+        for implementation in implementations:
+            implementation.install()
         ion_tests_source = arguments['--ion-tests']
         if not ion_tests_source:
             ion_tests_source = ION_TESTS_SOURCE

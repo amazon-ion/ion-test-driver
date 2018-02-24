@@ -21,5 +21,7 @@ __author__ = 'Amazon.com, Inc.'
 __version__ = '0.1.0'
 
 __all__ = [
-
+    'ion_test_driver_util',
+    'ion_test_driver_config',
+    'ion_test_driver'
 ]

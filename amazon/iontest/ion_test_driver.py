@@ -53,15 +53,16 @@ Options:
 import os
 import shutil
 from io import FileIO
-from subprocess import check_call, check_output, call, Popen, PIPE
-import sys
+from subprocess import check_call, check_output, Popen, PIPE
 import six
 from amazon.ion import simpleion
 from amazon.ion.core import IonType
 from amazon.ion.simple_types import IonPySymbol, IonPyList
 from amazon.ion.util import Enum
 from docopt import docopt
-from six import BytesIO
+
+from amazon.iontest.ion_test_driver_config import TOOL_DEPENDENCIES, ION_BUILDS, ION_IMPLEMENTATIONS, ION_TESTS_SOURCE
+from amazon.iontest.ion_test_driver_util import COMMAND_SHELL, log_call
 
 """
 Generates a report according to the following schema-by-example. Two versions will be generated: one according to the
@@ -138,22 +139,7 @@ following, and one that switches the implementation and test file dimensions.
 }
 """
 
-PACKAGE_ROOT = os.path.abspath(os.path.join(os.path.dirname(os.path.abspath(sys.argv[0]))))
-IONTESTS_LOCATION = os.path.join(PACKAGE_ROOT, '..', '..', 'ion-tests')
-ION_TESTS_SOURCE = 'https://github.com/amzn/ion-tests.git'
 OUTPUT_ROOT = "."
-
-COMMAND_SHELL = False
-if sys.platform.startswith('win'):
-    COMMAND_SHELL = True  # shell=True on Windows allows the .exe suffix to be omitted.
-
-
-# Tools expected to be present on the system. Key: name, value: path. Paths may be overridden using --<name>.
-# Accordingly, if tool dependencies are added here, a corresponding option should be added to the CLI.
-TOOL_DEPENDENCIES = {
-    'cmake': 'cmake',
-    'git': 'git'
-}
 
 
 def check_tool_dependencies(args):
@@ -175,85 +161,81 @@ def check_tool_dependencies(args):
             no_output.close()
 
 
-def install_ion_c():
-    check_call([TOOL_DEPENDENCIES['cmake'], '-DCMAKE_BUILD_TYPE=Debug'], shell=COMMAND_SHELL)
-    check_call([TOOL_DEPENDENCIES['cmake'], '--build', '.'], shell=COMMAND_SHELL)
-
-
-class IonBuild:
-    """
-    Args:
-        installer[func]: function which builds the implementation.
-        executable[text]: path to the implementation's executable, relative to the root of the implementation.
-    """
-    def __init__(self, installer, executable):
-        self.install = installer
-        self.execute = executable
-
-
-ION_BUILDS = {
-    'ion-c': IonBuild(install_ion_c, os.path.join('tools', 'cli', 'ion')),
-    # TODO add more implementations here
-}
-
-
-def git_clone_revision(name, location, revision):
-    # The commit is not yet known; clone into a temporary location to determine the commit and decide whether the
-    # code for that revision is already present. If it is, use the existing code, as it may have already been built.
-    tmp_dir_root = os.path.abspath((os.path.join(OUTPUT_ROOT, 'build', 'tmp')))
-    try:
-        tmp_dir = os.path.abspath(os.path.join(tmp_dir_root, name))
-        check_call([TOOL_DEPENDENCIES['git'], 'clone', '--recurse-submodules', location, tmp_dir],
-                   shell=COMMAND_SHELL)
-        os.chdir(tmp_dir)
-        if revision is not None:
-            check_call([TOOL_DEPENDENCIES['git'], 'checkout', revision], shell=COMMAND_SHELL)
-            check_call([TOOL_DEPENDENCIES['git'], 'submodule', 'update'], shell=COMMAND_SHELL)
-        commit = check_output([TOOL_DEPENDENCIES['git'], 'rev-parse', '--short', 'HEAD']).strip()
-        build_dir = os.path.abspath(
-            os.path.join(OUTPUT_ROOT, 'build', name + '_' + commit.decode())
-        )
-        if not os.path.exists(build_dir):
-            shutil.move(tmp_dir, build_dir)
-        else:
-            print("%s already present. Using existing source." % build_dir)
-        return build_dir
-    finally:
-        shutil.rmtree(tmp_dir_root)
-
-
-class IonImplementation:
+class IonResource:
     def __init__(self, name, location, revision):
         try:
-            self.__build = ION_BUILDS[name]
+            self._build = ION_BUILDS[name]
         except KeyError:
             raise ValueError('No installer for ' + name + '.')
-        self.__name = name
-        self.__build_dir = None
-        self.__executable = None
+        self._name = name
+        self._build_dir = None
+        self.__build_log = None
+        self.__identifier = None
+        self._executable = None
         self.__location = location
         self.__revision = revision
 
     @property
     def identifier(self):
-        if self.__build_dir is None:
-            raise ValueError('Implementation %s must be installed before receiving an identifier.' % self.__name)
-        return os.path.split(self.__build_dir)[-1]
+        if self.__identifier is None:
+            raise ValueError('Implementation %s must be installed before receiving an identifier.' % self._name)
+        return self.__identifier
+
+    def __git_clone_revision(self):
+        # The commit is not yet known; clone into a temporary location to determine the commit and decide whether the
+        # code for that revision is already present. If it is, use the existing code, as it may have already been built.
+        tmp_dir_root = os.path.abspath((os.path.join(OUTPUT_ROOT, 'build', 'tmp')))
+        try:
+            tmp_dir = os.path.abspath(os.path.join(tmp_dir_root, self._name))
+            if not os.path.isdir(tmp_dir_root):
+                os.makedirs(tmp_dir_root)
+            tmp_log = os.path.abspath(os.path.join(tmp_dir_root, 'tmp_log.txt'))
+            log_call(tmp_log, (TOOL_DEPENDENCIES['git'], 'clone', '--recurse-submodules', self.__location,
+                     tmp_dir))
+            os.chdir(tmp_dir)
+            if self.__revision is not None:
+                log_call(tmp_log, (TOOL_DEPENDENCIES['git'], 'checkout', self.__revision))
+                log_call(tmp_log, (TOOL_DEPENDENCIES['git'], 'submodule', 'update'))
+            commit = check_output([TOOL_DEPENDENCIES['git'], 'rev-parse', '--short', 'HEAD']).strip()
+            self.__identifier = self._name + '_' + commit.decode()
+            self._build_dir = os.path.abspath(os.path.join(OUTPUT_ROOT, 'build', self.__identifier))
+            logs_dir = os.path.abspath(os.path.join(OUTPUT_ROOT, 'build', 'logs'))
+            if not os.path.isdir(logs_dir):
+                os.makedirs(logs_dir)
+            self.__build_log = os.path.abspath(os.path.join(logs_dir, self.__identifier + '.txt'))
+            if not os.path.exists(self._build_dir):
+                shutil.move(tmp_log, self.__build_log)  # This build is being used, overwrite an existing log (if any).
+                shutil.move(tmp_dir, self._build_dir)
+            else:
+                print("%s already present. Using existing source." % self._build_dir)
+        finally:
+            shutil.rmtree(tmp_dir_root)
 
     def install(self):
-        self.__build_dir = git_clone_revision(self.__name, self.__location, self.__revision)
-        os.chdir(self.__build_dir)
-        self.__build.install()
+        print('Installing %s revision %s.' % (self._name, self.__revision))
+        self.__git_clone_revision()
+        os.chdir(self._build_dir)
+        self._build.install(self.__build_log)
         os.chdir(OUTPUT_ROOT)
+        print('Done installing %s.' % self.identifier)
+        return self._build_dir
+
+
+class IonImplementation(IonResource):
+    def __init__(self, name, location, revision):
+        super(IonImplementation, self).__init__(name, location, revision)
 
     def execute(self, *args):
-        if self.__build_dir is None:
-            raise ValueError('Implementation %s has not been built.' % self.__name)
-        if self.__executable is None:
-            self.__executable = os.path.abspath(os.path.join(self.__build_dir, self.__build.execute))
-        if not os.path.isfile(self.__executable):
-            raise ValueError('Executable for %s does not exist.' % self.__name)
-        _, stderr = Popen((self.__executable,) + args, stderr=PIPE, shell=COMMAND_SHELL).communicate()
+        # TODO execute commands in 'interactive mode' to avoid creating a new short-lived process for each invocation.
+        if self._build_dir is None:
+            raise ValueError('Implementation %s has not been installed.' % self._name)
+        if self._executable is None:
+            if self._build.execute is None:
+                raise ValueError('Implementation %s is not executable.' % self._name)
+            self._executable = os.path.abspath(os.path.join(self._build_dir, self._build.execute))
+        if not os.path.isfile(self._executable):
+            raise ValueError('Executable for %s does not exist.' % self._name)
+        _, stderr = Popen((self._executable,) + args, stderr=PIPE, shell=COMMAND_SHELL).communicate()
         return stderr
 
 
@@ -312,7 +294,7 @@ class CompareResult(TestResult):
         self.__comparison_report = None
 
 
-class TestFailure(dict):
+class TestReport(dict):
     def __init__(self):
         super(dict, self).__init__()
         self['result'] = IonPySymbol.from_value(IonType.SYMBOL, 'PASS')
@@ -392,7 +374,6 @@ def test_type_from_str(name):
 
 
 class TestFile:
-
     def __init__(self, path, test_type, results_root, ion_implementations):
         self.path = path
         self.short_path = os.path.split(self.path)[-1]
@@ -400,7 +381,7 @@ class TestFile:
         self.__write_results = []
         self.__type = test_type
         self.__results_root = os.path.join(results_root, self.short_path)
-        self.__failures = {impl.identifier: TestFailure() for impl in ion_implementations}  # Initializes PASS results
+        self.__report = {impl.identifier: TestReport() for impl in ion_implementations}  # Initializes PASS results
         self.__ion_implementations = ion_implementations
 
     def __execute_with(self, ion_implementation, error_location, *args):
@@ -449,7 +430,7 @@ class TestFile:
                                is_read, is_sets=True)
         if compare_result.has_errors or compare_result.has_comparison_failures:
             try:
-                self.__failures[ion_implementation.identifier].fail_compare(compare_result, is_read)
+                self.__report[ion_implementation.identifier].fail_compare(compare_result, is_read)
             except KeyError:
                 raise ValueError("Attempted to verify with an implementation that did not produce results.")
 
@@ -462,7 +443,7 @@ class TestFile:
             success_results = list(filter(lambda res: not res.has_errors, results))
         for error_result in error_results:
             try:
-                self.__failures[error_result.impl_id].error(error_result, is_read)
+                self.__report[error_result.impl_id].error(error_result, is_read)
             except KeyError:
                 raise ValueError("Attempted to verify with an implementation that did not produce results.")
         if len(success_results) == 0:
@@ -483,7 +464,7 @@ class TestFile:
     def __write_with(self, ion_implementation):
         if self.__type.is_bad:
             raise ValueError("Writing bad/ vectors is not supported.")
-        if self.__failures[ion_implementation.identifier].has_failure:
+        if self.__report[ion_implementation.identifier].has_failure:
             # Skip implementations that failed in a previous phase.
             return
         # Example directory structure: results/good/one.ion/write/ion-c_abcd123/text/data/ion-java_cdef456.ion
@@ -520,7 +501,7 @@ class TestFile:
         self.__verify(self.__write_results, is_read=False)
 
     def add_results_to(self, results):
-        results.setdefault(str(self.__type), {})[self.short_path] = self.__failures
+        results.setdefault(str(self.__type), {})[self.short_path] = self.__report
 
 
 class GoodTestFile(TestFile):
@@ -590,7 +571,7 @@ def generate_test_files(tests_dir, test_types, test_file_filter, ion_implementat
                 yield bad_file
 
 
-def write_results(results, results_file):
+def write_results(results, results_file, impls):
     # NOTE: A lot of this is a hack necessitated by the fact that ion-python does not yet support pretty-printing Ion
     # text. Once it does, the only thing this method needs to do is 'dump' to results_file with pretty-printing enabled.
     if '.' in results_file:
@@ -602,11 +583,12 @@ def write_results(results, results_file):
         simpleion.dump(results, results_out, binary=False)
     finally:
         results_out.close()
-    ionc = list(filter(lambda x: 'ion-c' in x.identifier, ION_IMPLEMENTATIONS))[0]
+    ionc = list(filter(lambda x: 'ion-c' in x.identifier, impls))[0]
     ionc.execute('process', '--output', results_file, results_file_raw)
 
 
 def test_all(impls, tests_dir, test_types, test_file_filter, results_file):
+    print('Running tests.', end='', flush=True)
     results = {}
     for test_file in generate_test_files(tests_dir, test_types, test_file_filter, impls):
         test_file.read()
@@ -614,13 +596,14 @@ def test_all(impls, tests_dir, test_types, test_file_filter, results_file):
         test_file.write()
         test_file.verify_writes()
         test_file.add_results_to(results)
-    write_results(results, results_file)
+        print('.', end='', flush=True)
+    write_results(results, results_file, impls)
+    print('\nTests complete. Results written to %s.' % results_file)
 
 
 def tokenize_description(description, has_name):
     components = description.split(',')
     max_components = 3
-    name = None
     if not has_name:
         max_components = 2
     if len(components) < max_components:
@@ -630,25 +613,13 @@ def tokenize_description(description, has_name):
     if len(components) < max_components - 1:
         raise ValueError("Invalid implementation description.")
     if has_name:
-        name = components[0]
-    return name, components[max_components - 2], revision
+        return components[0], components[max_components - 2], revision
+    else:
+        return components[max_components - 2], revision
 
 
-def parse_implementations(args):
-    return [IonImplementation(*tokenize_description(description, has_name=True))
-            for description in args['--implementation']]
-
-
-def install_ion_tests(description):
-    _, location, revision = tokenize_description(description, has_name=False)
-    return git_clone_revision('ion-tests', location, revision)
-
-# Ion implementations hosted in Github. Local implementations may be tested using the `--implementation` argument,
-# and should not be added here.
-ION_IMPLEMENTATIONS = [
-    IonImplementation('ion-c', '/Users/greggt/Documents/workspace/ion-c', 'cli-integ-intnegzero-assertions'),  # TODO -> amzn:master once cli is merged
-    # TODO add more Ion implementations here
-]
+def parse_implementations(descriptions):
+    return [IonImplementation(*tokenize_description(description, has_name=True)) for description in descriptions]
 
 
 def ion_test_driver(arguments):
@@ -658,9 +629,9 @@ def ion_test_driver(arguments):
         for impl_name in ION_BUILDS.keys():
             print(impl_name, end='\n')
     else:
-        implementations = parse_implementations(arguments)
+        implementations = parse_implementations(arguments['--implementation'])
         if not arguments['--local-only']:
-            implementations += ION_IMPLEMENTATIONS
+            implementations += parse_implementations(ION_IMPLEMENTATIONS)
         check_tool_dependencies(arguments)
         global OUTPUT_ROOT
         OUTPUT_ROOT = os.path.abspath(arguments['--output-dir'])
@@ -671,7 +642,7 @@ def ion_test_driver(arguments):
         ion_tests_source = arguments['--ion-tests']
         if not ion_tests_source:
             ion_tests_source = ION_TESTS_SOURCE
-        ion_tests_dir = install_ion_tests(ion_tests_source)
+        ion_tests_dir = IonResource('ion-tests', *tokenize_description(ion_tests_source, has_name=False)).install()
         results_output_file = arguments['--result-file']
         if not results_output_file:
             results_output_file = os.path.join(OUTPUT_ROOT, 'results', 'ion-test-driver-results.ion')
@@ -682,7 +653,6 @@ def ion_test_driver(arguments):
             test_types = [test_type_from_str(x) for x in test_type_strs]
         test_file_filter = arguments['<test_file>']
         test_all(implementations, ion_tests_dir, test_types, test_file_filter, results_output_file)
-
 
 if __name__ == '__main__':
     ion_test_driver(docopt(__doc__))

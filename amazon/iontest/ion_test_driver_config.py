@@ -15,6 +15,7 @@ import os
 
 from amazon.iontest.ion_test_driver_util import IonBuild, NO_OP_BUILD, log_call
 
+RESULTS_FILE_DEFAULT = 'ion-test-driver-results.ion'
 ION_TESTS_SOURCE = 'https://github.com/amzn/ion-tests.git'
 
 # Tools expected to be present on the system. Key: name, value: path. Paths may be overridden using --<name>.

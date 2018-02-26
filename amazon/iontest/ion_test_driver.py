@@ -61,7 +61,8 @@ from amazon.ion.simple_types import IonPySymbol, IonPyList
 from amazon.ion.util import Enum
 from docopt import docopt
 
-from amazon.iontest.ion_test_driver_config import TOOL_DEPENDENCIES, ION_BUILDS, ION_IMPLEMENTATIONS, ION_TESTS_SOURCE
+from amazon.iontest.ion_test_driver_config import TOOL_DEPENDENCIES, ION_BUILDS, ION_IMPLEMENTATIONS, ION_TESTS_SOURCE,\
+    RESULTS_FILE_DEFAULT
 from amazon.iontest.ion_test_driver_util import COMMAND_SHELL, log_call
 
 """
@@ -139,8 +140,6 @@ following, and one that switches the implementation and test file dimensions.
 }
 """
 
-OUTPUT_ROOT = "."
-
 
 def check_tool_dependencies(args):
     names = TOOL_DEPENDENCIES.keys()
@@ -162,11 +161,12 @@ def check_tool_dependencies(args):
 
 
 class IonResource:
-    def __init__(self, name, location, revision):
+    def __init__(self, output_root, name, location, revision):
+        self.__output_root = output_root
         try:
             self._build = ION_BUILDS[name]
         except KeyError:
-            raise ValueError('No installer for ' + name + '.')
+            raise ValueError('No installer for %s.' % name)
         self._name = name
         self._build_dir = None
         self.__build_log = None
@@ -184,7 +184,7 @@ class IonResource:
     def __git_clone_revision(self):
         # The commit is not yet known; clone into a temporary location to determine the commit and decide whether the
         # code for that revision is already present. If it is, use the existing code, as it may have already been built.
-        tmp_dir_root = os.path.abspath((os.path.join(OUTPUT_ROOT, 'build', 'tmp')))
+        tmp_dir_root = os.path.abspath((os.path.join(self.__output_root, 'build', 'tmp')))
         try:
             tmp_dir = os.path.abspath(os.path.join(tmp_dir_root, self._name))
             if not os.path.isdir(tmp_dir_root):
@@ -198,8 +198,8 @@ class IonResource:
                 log_call(tmp_log, (TOOL_DEPENDENCIES['git'], 'submodule', 'update'))
             commit = check_output([TOOL_DEPENDENCIES['git'], 'rev-parse', '--short', 'HEAD']).strip()
             self.__identifier = self._name + '_' + commit.decode()
-            self._build_dir = os.path.abspath(os.path.join(OUTPUT_ROOT, 'build', self.__identifier))
-            logs_dir = os.path.abspath(os.path.join(OUTPUT_ROOT, 'build', 'logs'))
+            self._build_dir = os.path.abspath(os.path.join(self.__output_root, 'build', self.__identifier))
+            logs_dir = os.path.abspath(os.path.join(self.__output_root, 'build', 'logs'))
             if not os.path.isdir(logs_dir):
                 os.makedirs(logs_dir)
             self.__build_log = os.path.abspath(os.path.join(logs_dir, self.__identifier + '.txt'))
@@ -216,14 +216,14 @@ class IonResource:
         self.__git_clone_revision()
         os.chdir(self._build_dir)
         self._build.install(self.__build_log)
-        os.chdir(OUTPUT_ROOT)
+        os.chdir(self.__output_root)
         print('Done installing %s.' % self.identifier)
         return self._build_dir
 
 
 class IonImplementation(IonResource):
-    def __init__(self, name, location, revision):
-        super(IonImplementation, self).__init__(name, location, revision)
+    def __init__(self, output_root, name, location, revision):
+        super(IonImplementation, self).__init__(output_root, name, location, revision)
 
     def execute(self, *args):
         # TODO execute commands in 'interactive mode' to avoid creating a new short-lived process for each invocation.
@@ -295,33 +295,45 @@ class CompareResult(TestResult):
 
 
 class TestReport(dict):
+    PASS = IonPySymbol.from_value(IonType.SYMBOL, 'PASS')
+    FAIL = IonPySymbol.from_value(IonType.SYMBOL, 'FAIL')
+    READ_ERROR = 'read_error'
+    WRITE_ERROR = 'write_error'
+    READ_COMPARE = 'read_compare'
+    WRITE_COMPARE = 'write_compare'
+    ERROR_REPORT_ANNOTATION = (IonPySymbol.from_value(IonType.SYMBOL, 'ErrorReport'),)
+    COMPARISON_REPORT_ANNOTATION = (IonPySymbol.from_value(IonType.SYMBOL, 'ComparisonReport'),)
+    RESULT_FIELD = 'result'
+    COMPARISON_FAILURES_FIELD = 'failures'
+    ERRORS_FIELD = 'errors'
+
     def __init__(self):
         super(dict, self).__init__()
-        self['result'] = IonPySymbol.from_value(IonType.SYMBOL, 'PASS')
+        self[TestReport.RESULT_FIELD] = TestReport.PASS
 
     def __set_read_write_error(self, key, error_report):
-        error_report.ion_annotations = (IonPySymbol.from_value(IonType.SYMBOL, 'ErrorReport'),)
+        error_report.ion_annotations = TestReport.ERROR_REPORT_ANNOTATION
         self[key] = error_report
-        self['result'] = IonPySymbol.from_value(IonType.SYMBOL, 'FAIL')
+        self[TestReport.RESULT_FIELD] = TestReport.FAIL
 
     def __set_comparison_failure(self, key, comparison_report, error_report):
         if comparison_report is None and error_report is None:
             raise ValueError('Failed a comparison for %s for no apparent reason.' % key)
         self[key] = {}
         if comparison_report is not None:
-            comparison_report.ion_annotations = (IonPySymbol.from_value(IonType.SYMBOL, 'ComparisonReport'),)
-            self[key]['failures'] = comparison_report
+            comparison_report.ion_annotations = TestReport.COMPARISON_REPORT_ANNOTATION
+            self[key][TestReport.COMPARISON_FAILURES_FIELD] = comparison_report
         if error_report is not None:
-            error_report.ion_annotations = (IonPySymbol.from_value(IonType.SYMBOL, 'ErrorReport'),)
-            self[key]['errors'] = error_report
-        self['result'] = IonPySymbol.from_value(IonType.SYMBOL, 'FAIL')
+            error_report.ion_annotations = TestReport.ERROR_REPORT_ANNOTATION
+            self[key][TestReport.ERRORS_FIELD] = error_report
+        self[TestReport.RESULT_FIELD] = TestReport.FAIL
 
     def error(self, result, is_read):
-        field = 'read_error' if is_read else 'write_error'
+        field = TestReport.READ_ERROR if is_read else TestReport.WRITE_ERROR
         self.__set_read_write_error(field, result.errors)
 
     def fail_compare(self, compare_result, is_read):
-        field = 'read_compare' if is_read else 'write_compare'
+        field = TestReport.READ_COMPARE if is_read else TestReport.WRITE_COMPARE
         self.__set_comparison_failure(
             field,
             compare_result.comparison_report if compare_result.has_comparison_failures else None,
@@ -330,7 +342,7 @@ class TestReport(dict):
 
     @property
     def has_failure(self):
-        return self['result'] == IonPySymbol.from_value(IonType.SYMBOL, 'FAIL')
+        return self[TestReport.RESULT_FIELD] == TestReport.FAIL
 
 
 class TestType(Enum):
@@ -374,13 +386,13 @@ def test_type_from_str(name):
 
 
 class TestFile:
-    def __init__(self, path, test_type, results_root, ion_implementations):
+    def __init__(self, path, test_type, output_root, results_subdir, ion_implementations):
         self.path = path
         self.short_path = os.path.split(self.path)[-1]
         self.__read_results = []
         self.__write_results = []
         self.__type = test_type
-        self.__results_root = os.path.join(results_root, self.short_path)
+        self.__results_root = os.path.join(output_root, results_subdir, self.short_path)
         self.__report = {impl.identifier: TestReport() for impl in ion_implementations}  # Initializes PASS results
         self.__ion_implementations = ion_implementations
 
@@ -505,39 +517,38 @@ class TestFile:
 
 
 class GoodTestFile(TestFile):
-    def __init__(self, path, ion_implementations):
-        super(GoodTestFile, self).__init__(path, TestType.GOOD, os.path.join(OUTPUT_ROOT, 'results', 'good'),
+    def __init__(self, path, output_root, ion_implementations):
+        super(GoodTestFile, self).__init__(path, TestType.GOOD, output_root, os.path.join('results', 'good'),
                                            ion_implementations)
 
 
 class BadTestFile(TestFile):
-    def __init__(self, path, ion_implementations):
-        super(BadTestFile, self).__init__(path, TestType.BAD,
-                                          os.path.join(OUTPUT_ROOT, 'results', 'bad'), ion_implementations)
+    def __init__(self, path, output_root, ion_implementations):
+        super(BadTestFile, self).__init__(path, TestType.BAD, output_root,
+                                          os.path.join('results', 'bad'), ion_implementations)
 
 
 class GoodEquivsTestfile(TestFile):
-    def __init__(self, path, ion_implementations):
-        super(GoodEquivsTestfile, self).__init__(path, TestType.EQUIVS,
-                                                 os.path.join(OUTPUT_ROOT, 'results', 'equivs'),
+    def __init__(self, path, output_root, ion_implementations):
+        super(GoodEquivsTestfile, self).__init__(path, TestType.EQUIVS, output_root, os.path.join('results', 'equivs'),
                                                  ion_implementations)
 
 
 class GoodEquivsTimelineTestfile(TestFile):
-    def __init__(self, path, ion_implementations):
-        super(GoodEquivsTimelineTestfile, self).__init__(path, TestType.EQUIV_TIMELINE,
-                                                         os.path.join(OUTPUT_ROOT, 'results', 'equiv-timeline'),
+    def __init__(self, path, output_root, ion_implementations):
+        super(GoodEquivsTimelineTestfile, self).__init__(path, TestType.EQUIV_TIMELINE, output_root,
+                                                         os.path.join('results', 'equiv-timeline'),
                                                          ion_implementations)
 
 
 class GoodNonequivsTestfile(TestFile):
-    def __init__(self, path, ion_implementations):
-        super(GoodNonequivsTestfile, self).__init__(path, TestType.NON_EQUIVS,
-                                                    os.path.join(OUTPUT_ROOT, 'results', 'non-equivs'),
+    def __init__(self, path, output_root, ion_implementations):
+        super(GoodNonequivsTestfile, self).__init__(path, TestType.NON_EQUIVS, output_root,
+                                                    os.path.join('results', 'non-equivs'),
                                                     ion_implementations)
 
 
-def generate_test_files(tests_dir, test_types, test_file_filter, ion_implementations):
+def generate_test_files(tests_dir, test_types, test_file_filter, output_root, ion_implementations):
     def filter_files(test_file_cls):
         for test_file in files:
             if not (test_file.endswith('.ion') or test_file.endswith('.10n')):
@@ -546,7 +557,7 @@ def generate_test_files(tests_dir, test_types, test_file_filter, ion_implementat
             if len(test_file_filter) != 0:
                 if not (full_test_file in test_file_filter):
                     continue
-            yield test_file_cls(full_test_file, ion_implementations)
+            yield test_file_cls(full_test_file, output_root, ion_implementations)
 
     test_file_root = os.path.abspath(os.path.join(tests_dir, 'iontestdata'))
     if not os.path.exists(test_file_root):
@@ -587,10 +598,10 @@ def write_results(results, results_file, impls):
     ionc.execute('process', '--output', results_file, results_file_raw)
 
 
-def test_all(impls, tests_dir, test_types, test_file_filter, results_file):
+def test_all(impls, tests_dir, test_types, test_file_filter, output_root, results_file):
     print('Running tests.', end='', flush=True)
     results = {}
-    for test_file in generate_test_files(tests_dir, test_types, test_file_filter, impls):
+    for test_file in generate_test_files(tests_dir, test_types, test_file_filter, output_root, impls):
         test_file.read()
         test_file.verify_reads()
         test_file.write()
@@ -618,8 +629,9 @@ def tokenize_description(description, has_name):
         return components[max_components - 2], revision
 
 
-def parse_implementations(descriptions):
-    return [IonImplementation(*tokenize_description(description, has_name=True)) for description in descriptions]
+def parse_implementations(descriptions, output_root):
+    return [IonImplementation(output_root, *tokenize_description(description, has_name=True))
+            for description in descriptions]
 
 
 def ion_test_driver(arguments):
@@ -629,30 +641,31 @@ def ion_test_driver(arguments):
         for impl_name in ION_BUILDS.keys():
             print(impl_name, end='\n')
     else:
-        implementations = parse_implementations(arguments['--implementation'])
+        output_root = os.path.abspath(arguments['--output-dir'])
+        if not os.path.exists(output_root):
+            os.makedirs(output_root)
+        implementations = parse_implementations(arguments['--implementation'], output_root)
         if not arguments['--local-only']:
-            implementations += parse_implementations(ION_IMPLEMENTATIONS)
+            implementations += parse_implementations(ION_IMPLEMENTATIONS, output_root)
         check_tool_dependencies(arguments)
-        global OUTPUT_ROOT
-        OUTPUT_ROOT = os.path.abspath(arguments['--output-dir'])
-        if not os.path.exists(OUTPUT_ROOT):
-            os.makedirs(OUTPUT_ROOT)
         for implementation in implementations:
             implementation.install()
         ion_tests_source = arguments['--ion-tests']
         if not ion_tests_source:
             ion_tests_source = ION_TESTS_SOURCE
-        ion_tests_dir = IonResource('ion-tests', *tokenize_description(ion_tests_source, has_name=False)).install()
+        ion_tests_dir = IonResource(
+            output_root, 'ion-tests', *tokenize_description(ion_tests_source, has_name=False)
+        ).install()
         results_output_file = arguments['--result-file']
         if not results_output_file:
-            results_output_file = os.path.join(OUTPUT_ROOT, 'results', 'ion-test-driver-results.ion')
+            results_output_file = os.path.join(output_root, 'results', RESULTS_FILE_DEFAULT)
         test_type_strs = arguments['--test']
         if 'all' in test_type_strs:
             test_types = list(TestType.__iter__())
         else:
             test_types = [test_type_from_str(x) for x in test_type_strs]
         test_file_filter = arguments['<test_file>']
-        test_all(implementations, ion_tests_dir, test_types, test_file_filter, results_output_file)
+        test_all(implementations, ion_tests_dir, test_types, test_file_filter, output_root, results_output_file)
 
 if __name__ == '__main__':
     ion_test_driver(docopt(__doc__))

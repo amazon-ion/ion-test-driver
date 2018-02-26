@@ -15,7 +15,7 @@
 """Cross-implementation test driver.
 
 Usage:
-    ion_test_driver.py [--implementation <description>]... [--ion-tests <description>] [--test <type>]... [--local-only] [--cmake <path>] [--git <path>] [--output-dir <dir>] [--result-file <file>] [<test_file>]...
+    ion_test_driver.py [--implementation <description>]... [--ion-tests <description>] [--test <type>]... [--local-only] [--cmake <path>] [--git <path>] [--output-dir <dir>] [--results-file <file>] [<test_file>]...
     ion_test_driver.py (--list)
     ion_test_driver.py (-h | --help)
 
@@ -41,7 +41,7 @@ Options:
 
     -o, --output-dir <dir>              Root directory for all of this command's output. [default: .]
 
-    -r, --result-file <file>            Path to the results output file. By default, this will be placed in a file named
+    -r, --results-file <file>           Path to the results output file. By default, this will be placed in a file named
                                         `ion-test-driver-results.ion` under the directory specified by the
                                         `--output-dir` option.
 
@@ -557,7 +557,12 @@ def generate_test_files(tests_dir, test_types, test_file_filter, results_root, i
                 continue
             full_test_file = os.path.join(root, test_file)
             if len(test_file_filter) != 0:
-                if not (full_test_file in test_file_filter):
+                found = False
+                for filter_matcher in test_file_filter:
+                    if full_test_file.endswith(filter_matcher):
+                        found = True
+                        break
+                if not found:
                     continue
             yield test_file_cls(full_test_file, results_root, ion_implementations)
 
@@ -643,7 +648,8 @@ def ion_test_driver(arguments):
         print(__doc__)
     elif arguments['--list']:
         for impl_name in ION_BUILDS.keys():
-            print(impl_name, end='\n')
+            if impl_name != 'ion-tests':
+                print(impl_name)
     else:
         output_root = os.path.abspath(arguments['--output-dir'])
         if not os.path.exists(output_root):
@@ -661,7 +667,7 @@ def ion_test_driver(arguments):
             output_root, 'ion-tests', *tokenize_description(ion_tests_source, has_name=False)
         ).install()
         results_root = os.path.join(output_root, 'results')
-        results_file = arguments['--result-file']
+        results_file = arguments['--results-file']
         if not results_file:
             results_file = RESULTS_FILE_DEFAULT
         test_type_strs = arguments['--test']

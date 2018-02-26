@@ -140,6 +140,9 @@ following, and one that switches the implementation and test file dimensions.
 }
 """
 
+ION_SUFFIX_TEXT = '.ion'
+ION_SUFFIX_BINARY = '.10n'
+
 
 def check_tool_dependencies(args):
     names = TOOL_DEPENDENCIES.keys()
@@ -196,7 +199,7 @@ class IonResource:
             if self.__revision is not None:
                 log_call(tmp_log, (TOOL_DEPENDENCIES['git'], 'checkout', self.__revision))
                 log_call(tmp_log, (TOOL_DEPENDENCIES['git'], 'submodule', 'update'))
-            commit = check_output([TOOL_DEPENDENCIES['git'], 'rev-parse', '--short', 'HEAD']).strip()
+            commit = check_output((TOOL_DEPENDENCIES['git'], 'rev-parse', '--short', 'HEAD')).strip()
             self.__identifier = self._name + '_' + commit.decode()
             self._build_dir = os.path.abspath(os.path.join(self.__output_root, 'build', self.__identifier))
             logs_dir = os.path.abspath(os.path.join(self.__output_root, 'build', 'logs'))
@@ -386,13 +389,26 @@ def test_type_from_str(name):
 
 
 class TestFile:
-    def __init__(self, path, test_type, output_root, results_subdir, ion_implementations):
+    ERROR_TYPE_FIELD = 'error_type'
+    ERROR_MESSAGE_FIELD = 'message'
+    ERROR_LOCATION_FIELD = 'location'
+    ERROR_TYPE_STATE_SYMBOL = IonPySymbol.from_value(IonType.SYMBOL, 'STATE')
+    DATA_DIR = 'data'
+    ERRORS_DIR = 'errors'
+    REPORT_DIR = 'report'
+    READ_DATA_DIR = os.path.join('read', DATA_DIR)
+    READ_ERRORS_DIR = os.path.join('read', ERRORS_DIR)
+    WRITE_DIR = 'write'
+    READ_VERIFY_DIR = 'read_verify'
+    WRITE_VERIFY_DIR = 'write_verify'
+
+    def __init__(self, path, test_type, output_root, ion_implementations):
         self.path = path
         self.short_path = os.path.split(self.path)[-1]
         self.__read_results = []
         self.__write_results = []
         self.__type = test_type
-        self.__results_root = os.path.join(output_root, results_subdir, self.short_path)
+        self.__results_root = os.path.join(output_root, str(test_type), self.short_path)
         self.__report = {impl.identifier: TestReport() for impl in ion_implementations}  # Initializes PASS results
         self.__ion_implementations = ion_implementations
 
@@ -404,11 +420,11 @@ class TestFile:
             error_file = FileIO(error_location, 'wb')
             try:
                 error = {
-                    'error_type': IonPySymbol.from_value(IonType.SYMBOL, 'STATE'),
-                    'message': 'Implementation %s produced stderr output "%s" for command %r.' % (
+                    TestFile.ERROR_TYPE_FIELD: TestFile.ERROR_TYPE_STATE_SYMBOL,
+                    TestFile.ERROR_MESSAGE_FIELD: 'Implementation %s produced stderr output "%s" for command %r.' % (
                         ion_implementation.identifier, stderr.decode(), args
                     ),
-                    'location': self.path
+                    TestFile.ERROR_LOCATION_FIELD: self.path
                 }
                 simpleion.dump(error, error_file, binary=False)
             finally:
@@ -422,8 +438,8 @@ class TestFile:
 
     def __read_with(self, ion_implementation):
         # Sample directory structure: results/good/one.ion/read/data/ion-c_abcd123.ion
-        read_output = self.__new_results_file(ion_implementation.identifier + '.ion', 'read', 'data')
-        read_errors = self.__new_results_file(ion_implementation.identifier + '.ion', 'read', 'errors')
+        read_output = self.__new_results_file(ion_implementation.identifier + ION_SUFFIX_TEXT, TestFile.READ_DATA_DIR)
+        read_errors = self.__new_results_file(ion_implementation.identifier + ION_SUFFIX_TEXT, TestFile.READ_ERRORS_DIR)
         self.__execute_with(ion_implementation, read_errors,
                             'process', '--error-report', read_errors, '--output', read_output, '--output-format',
                             'events', self.path)
@@ -461,14 +477,16 @@ class TestFile:
         if len(success_results) == 0:
             # Every input caused an error. There's nothing to compare.
             return
-        verify_dir = 'read_verify' if is_read else 'write_verify'
+        verify_dir = TestFile.READ_VERIFY_DIR if is_read else TestFile.WRITE_VERIFY_DIR
         outputs = [x.output_location for x in success_results]
         if not self.__type.is_bad:
             # For bad inputs, reading the original input again would cause a failure before the comparison begins.
             outputs.append(self.path)
         for ion_implementation in self.__ion_implementations:
-            compare_output = self.__new_results_file(ion_implementation.identifier + '.ion', verify_dir, 'report')
-            compare_errors = self.__new_results_file(ion_implementation.identifier + '.ion', verify_dir, 'errors')
+            compare_output = self.__new_results_file(ion_implementation.identifier + ION_SUFFIX_TEXT, verify_dir,
+                                                     TestFile.REPORT_DIR)
+            compare_errors = self.__new_results_file(ion_implementation.identifier + ION_SUFFIX_TEXT, verify_dir,
+                                                     TestFile.ERRORS_DIR)
             self.__compare(ion_implementation, 'basic',
                            CompareResult(ion_implementation.identifier, compare_output, compare_errors),
                            outputs, is_read)
@@ -480,15 +498,15 @@ class TestFile:
             # Skip implementations that failed in a previous phase.
             return
         # Example directory structure: results/good/one.ion/write/ion-c_abcd123/text/data/ion-java_cdef456.ion
-        write_output_root = os.path.join('write', ion_implementation.identifier)
+        write_output_root = os.path.join(TestFile.WRITE_DIR, ion_implementation.identifier)
         for read_result in self.__read_results:
             if not read_result.has_errors:  # Skip read results that failed in a previous phase.
                 for encoding in ('text', 'binary'):
-                    suffix = '.ion' if encoding == 'text' else '.10n'
+                    suffix = ION_SUFFIX_TEXT if encoding == 'text' else ION_SUFFIX_BINARY
                     write_output = self.__new_results_file(read_result.impl_id + suffix, write_output_root,
-                                                           encoding, 'data')
-                    write_errors = self.__new_results_file(read_result.impl_id + '.ion', write_output_root,
-                                                           encoding, 'errors')
+                                                           encoding, TestFile.DATA_DIR)
+                    write_errors = self.__new_results_file(read_result.impl_id + ION_SUFFIX_TEXT, write_output_root,
+                                                           encoding, TestFile.ERRORS_DIR)
                     self.__execute_with(ion_implementation, write_errors,
                                         'process', '--error-report', write_errors, '--output', write_output,
                                         '--output-format', encoding, read_result.output_location)
@@ -516,68 +534,53 @@ class TestFile:
         results.setdefault(str(self.__type), {})[self.short_path] = self.__report
 
 
-class GoodTestFile(TestFile):
-    def __init__(self, path, output_root, ion_implementations):
-        super(GoodTestFile, self).__init__(path, TestType.GOOD, output_root, os.path.join('results', 'good'),
-                                           ion_implementations)
+def test_file_class_for(name, test_type):
+    class TestFileSubclass(TestFile):
+        def __init__(self, path, results_root, ion_implementations):
+            super(TestFileSubclass, self).__init__(path, test_type, results_root, ion_implementations)
+
+    TestFileSubclass.__name__ = name
+    return TestFileSubclass
 
 
-class BadTestFile(TestFile):
-    def __init__(self, path, output_root, ion_implementations):
-        super(BadTestFile, self).__init__(path, TestType.BAD, output_root,
-                                          os.path.join('results', 'bad'), ion_implementations)
+GoodTestFile = test_file_class_for('GoodTestFile', TestType.GOOD)
+BadTestFile = test_file_class_for('BadTestFile', TestType.BAD)
+GoodEquivsTestfile = test_file_class_for('GoodEquivsTestfile', TestType.EQUIVS)
+GoodEquivsTimelineTestfile = test_file_class_for('GoodEquivsTimelineTestfile', TestType.EQUIV_TIMELINE)
+GoodNonequivsTestfile = test_file_class_for('GoodNonequivsTestfile', TestType.NON_EQUIVS)
 
 
-class GoodEquivsTestfile(TestFile):
-    def __init__(self, path, output_root, ion_implementations):
-        super(GoodEquivsTestfile, self).__init__(path, TestType.EQUIVS, output_root, os.path.join('results', 'equivs'),
-                                                 ion_implementations)
-
-
-class GoodEquivsTimelineTestfile(TestFile):
-    def __init__(self, path, output_root, ion_implementations):
-        super(GoodEquivsTimelineTestfile, self).__init__(path, TestType.EQUIV_TIMELINE, output_root,
-                                                         os.path.join('results', 'equiv-timeline'),
-                                                         ion_implementations)
-
-
-class GoodNonequivsTestfile(TestFile):
-    def __init__(self, path, output_root, ion_implementations):
-        super(GoodNonequivsTestfile, self).__init__(path, TestType.NON_EQUIVS, output_root,
-                                                    os.path.join('results', 'non-equivs'),
-                                                    ion_implementations)
-
-
-def generate_test_files(tests_dir, test_types, test_file_filter, output_root, ion_implementations):
+def generate_test_files(tests_dir, test_types, test_file_filter, results_root, ion_implementations):
     def filter_files(test_file_cls):
         for test_file in files:
-            if not (test_file.endswith('.ion') or test_file.endswith('.10n')):
+            if not (test_file.endswith(ION_SUFFIX_TEXT) or test_file.endswith(ION_SUFFIX_BINARY)):
                 continue
             full_test_file = os.path.join(root, test_file)
             if len(test_file_filter) != 0:
                 if not (full_test_file in test_file_filter):
                     continue
-            yield test_file_cls(full_test_file, output_root, ion_implementations)
+            yield test_file_cls(full_test_file, results_root, ion_implementations)
 
     test_file_root = os.path.abspath(os.path.join(tests_dir, 'iontestdata'))
     if not os.path.exists(test_file_root):
         raise ValueError("Invalid ion-tests directory. Could not find test files.")
     for root, dirs, files in os.walk(test_file_root):
-        if os.path.join('iontestdata', 'good') in root:
-            if os.path.join('good', 'equivs') in root:
-                if TestType.EQUIVS in test_types:
-                    for equivs_file in filter_files(GoodEquivsTestfile):
-                        yield equivs_file
-            elif os.path.join('good', 'non-equivs') in root and TestType.NON_EQUIVS in test_types:
+        if os.path.join('iontestdata', str(TestType.GOOD)) in root:
+            if os.path.join(str(TestType.GOOD), str(TestType.EQUIVS)) in root and TestType.EQUIVS in test_types:
+                for equivs_file in filter_files(GoodEquivsTestfile):
+                    yield equivs_file
+            elif os.path.join(str(TestType.GOOD), str(TestType.NON_EQUIVS)) in root \
+                    and TestType.NON_EQUIVS in test_types:
                 for nonequivs_file in filter_files(GoodNonequivsTestfile):
                     yield nonequivs_file
-            elif os.path.join('good', 'timestamp', 'equivTimeline') in root and TestType.EQUIV_TIMELINE in test_types:
+            elif os.path.join(str(TestType.GOOD), 'timestamp', 'equivTimeline') in root \
+                    and TestType.EQUIV_TIMELINE in test_types:
                 for equiv_timeline_file in filter_files(GoodEquivsTimelineTestfile):
                     yield equiv_timeline_file
             elif TestType.GOOD in test_types:
                 for good_file in filter_files(GoodTestFile):
                     yield good_file
-        elif os.path.join('iontestdata', 'bad') in root and TestType.BAD in test_types:
+        elif os.path.join('iontestdata', str(TestType.BAD)) in root and TestType.BAD in test_types:
             for bad_file in filter_files(BadTestFile):
                 yield bad_file
 
@@ -598,18 +601,19 @@ def write_results(results, results_file, impls):
     ionc.execute('process', '--output', results_file, results_file_raw)
 
 
-def test_all(impls, tests_dir, test_types, test_file_filter, output_root, results_file):
+def test_all(impls, tests_dir, test_types, test_file_filter, results_root, results_file):
     print('Running tests.', end='', flush=True)
     results = {}
-    for test_file in generate_test_files(tests_dir, test_types, test_file_filter, output_root, impls):
+    for test_file in generate_test_files(tests_dir, test_types, test_file_filter, results_root, impls):
         test_file.read()
         test_file.verify_reads()
         test_file.write()
         test_file.verify_writes()
         test_file.add_results_to(results)
         print('.', end='', flush=True)
-    write_results(results, results_file, impls)
-    print('\nTests complete. Results written to %s.' % results_file)
+    results_location = os.path.join(results_root, results_file)
+    write_results(results, results_location, impls)
+    print('\nTests complete. Results written to %s.' % results_location)
 
 
 def tokenize_description(description, has_name):
@@ -656,16 +660,17 @@ def ion_test_driver(arguments):
         ion_tests_dir = IonResource(
             output_root, 'ion-tests', *tokenize_description(ion_tests_source, has_name=False)
         ).install()
-        results_output_file = arguments['--result-file']
-        if not results_output_file:
-            results_output_file = os.path.join(output_root, 'results', RESULTS_FILE_DEFAULT)
+        results_root = os.path.join(output_root, 'results')
+        results_file = arguments['--result-file']
+        if not results_file:
+            results_file = RESULTS_FILE_DEFAULT
         test_type_strs = arguments['--test']
         if 'all' in test_type_strs:
             test_types = list(TestType.__iter__())
         else:
             test_types = [test_type_from_str(x) for x in test_type_strs]
         test_file_filter = arguments['<test_file>']
-        test_all(implementations, ion_tests_dir, test_types, test_file_filter, output_root, results_output_file)
+        test_all(implementations, ion_tests_dir, test_types, test_file_filter, results_root, results_file)
 
 if __name__ == '__main__':
     ion_test_driver(docopt(__doc__))

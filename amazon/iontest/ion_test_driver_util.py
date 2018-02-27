@@ -29,10 +29,7 @@ def log_call(log, args):
     """
     Logs the stdout and stderr for the given subprocess call to the given file.
     """
-    if os.path.isfile(log):
-        log_file = open(log, 'a')
-    else:
-        log_file = open(log, 'w')
+    log_file = open(log, 'a' if os.path.isfile(log) else 'w')
     try:
         check_call(args, shell=COMMAND_SHELL, stdout=log_file, stderr=log_file)
     finally:

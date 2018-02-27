@@ -138,7 +138,7 @@ class IonResource:
             os.chdir(tmp_dir)
             if self.__revision is not None:
                 log_call(tmp_log, (TOOL_DEPENDENCIES['git'], 'checkout', self.__revision))
-                log_call(tmp_log, (TOOL_DEPENDENCIES['git'], 'submodule', 'update'))
+                log_call(tmp_log, (TOOL_DEPENDENCIES['git'], 'submodule', 'update', '--init'))
             commit = check_output((TOOL_DEPENDENCIES['git'], 'rev-parse', '--short', 'HEAD')).strip()
             self.__identifier = self._name + '_' + commit.decode()
             self._build_dir = os.path.abspath(os.path.join(self.__output_root, 'build', self.__identifier))

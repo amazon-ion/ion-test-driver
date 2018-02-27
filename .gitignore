@@ -3,3 +3,4 @@ results/
 .python-version
 venv/
 .idea/
+amazon/iontest/__pycache__/

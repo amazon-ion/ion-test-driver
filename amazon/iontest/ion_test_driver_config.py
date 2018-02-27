@@ -11,6 +11,11 @@
 # OF ANY KIND, either express or implied. See the License for the
 # specific language governing permissions and limitations under the
 # License.
+
+"""
+Provides the build logic for Ion resources required by the ion_test_driver.
+"""
+
 import os
 
 from amazon.iontest.ion_test_driver_util import IonBuild, NO_OP_BUILD, log_call
@@ -38,7 +43,7 @@ ION_BUILDS = {
 }
 
 # Ion implementations hosted in Github. Local implementations may be tested using the `--implementation` argument,
-# and should not be added here.
+# and should not be added here. For the proper description format, see the ion_test_driver CLI help.
 ION_IMPLEMENTATIONS = [
     'ion-c,/Users/greggt/Documents/workspace/ion-c,cli-integ-intnegzero-assertions',  # TODO -> amzn:master once cli is merged
     # TODO add more Ion implementations here

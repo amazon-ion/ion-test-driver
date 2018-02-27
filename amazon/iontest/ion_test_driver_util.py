@@ -11,6 +11,11 @@
 # OF ANY KIND, either express or implied. See the License for the
 # specific language governing permissions and limitations under the
 # License.
+
+"""
+ion_test_driver utilities.
+"""
+
 import os
 import sys
 from subprocess import check_call
@@ -21,6 +26,9 @@ if sys.platform.startswith('win'):
 
 
 def log_call(log, args):
+    """
+    Logs the stdout and stderr for the given subprocess call to the given file.
+    """
     if os.path.isfile(log):
         log_file = open(log, 'a')
     else:
@@ -32,12 +40,13 @@ def log_call(log, args):
 
 
 class IonBuild:
-    """
-    Args:
-        installer[func]: function which builds the implementation.
-        executable[text]: path to the implementation's executable, relative to the root of the implementation.
-    """
     def __init__(self, installer, executable):
+        """
+        Build information for an Ion resource.
+
+        :param installer: function which builds the resource.
+        :param executable: path to the resource's executable (if any), relative to the root of the implementation.
+        """
         self.install = installer
         self.execute = executable
 

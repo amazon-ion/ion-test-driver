@@ -45,6 +45,6 @@ ION_BUILDS = {
 # Ion implementations hosted in Github. Local implementations may be tested using the `--implementation` argument,
 # and should not be added here. For the proper description format, see the ion_test_driver CLI help.
 ION_IMPLEMENTATIONS = [
-    'ion-c,https://github.com/tgregg/ion-c.git,cli',  # TODO -> ion-c,https://github.com/amzn/ion-c.git,master
+    'ion-c,https://github.com/amzn/ion-c.git,master',
     # TODO add more Ion implementations here
 ]

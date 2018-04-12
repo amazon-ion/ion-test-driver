@@ -289,9 +289,9 @@ codes. All other command invocations will exit with status code zero.
 
     Usage:
         ion
-        ion process [--output <file>] [--error-report <file>] [--output-format (text | pretty | binary | events | none)]    [--catalog <file>]... [--imports <file>]... [--perf-report [<file>]] [--filter <filter> | --traverse <file>]    [-] [<input_file>]...
-        ion compare [--output <file>] [--error-report <file>] [--output-format (text | pretty | binary | none)]             [--catalog <file>]... [--comparison-type (basic | equivs | non-equivs | equiv-timeline)]                        [-] [<input_file>]...
-        ion extract [--output <file>] [--error-report <file>] [--output-format (text | pretty | binary | none)]             (--symtab-name <name>) (--symtab-version <version>)                                                             [-] [<input_file>]...
+        ion process [--output <file>] [--error-report <file>] [--output-format (text | pretty | binary | events | none)]    [--catalog <file>]... [--imports <file>]... [--perf-report <file>] [--filter <filter> | --traverse <file>]  [-] [<input_file>]...
+        ion compare [--output <file>] [--error-report <file>] [--output-format (text | pretty | binary | none)]             [--catalog <file>]... [--comparison-type (basic | equivs | non-equivs | equiv-timeline)]                    [-] [<input_file>]...
+        ion extract [--output <file>] [--error-report <file>] [--output-format (text | pretty | binary | none)]             (--symtab-name <name>) (--symtab-version <version>)                                                         [-] [<input_file>]...
         ion help    [extract | compare | process]
         ion --help
         ion version
@@ -324,7 +324,7 @@ codes. All other command invocations will exit with status code zero.
             ErrorReport location. [default: stderr]
         
         -p, --perf-report <file>
-            PerformanceReport location. If left unspecified, a performance report is not generated. [default: stdout]
+            PerformanceReport location. If left unspecified, a performance report is not generated.
         
         -c, --catalog <file>
             Location(s) of files containing Ion streams of shared symbol tables from which to populate a catalog. This
@@ -890,15 +890,11 @@ EventStream, the user must decide which implementation (or
 implementations) contains a defect and only create an issue for the
 offending implementation(s).
 
-When the test harness selects a vector to test, it determines which
-implementations to test by starting with the set of all implementations
-and subtracting the implementations whose skip lists contain that vector.
-
 Repository structure
 --------------------
 
-The test harness will exist its own repository. It will locally clone the
-latest commit of ion-tests and all Ion implementations.
+The test harness will exist in its own repository. It will locally clone
+the latest commit of ion-tests and all Ion implementations.
 
 Starting a test run will involve triggering a build of each
 implementation, distributing work to each implementation through that
@@ -1019,9 +1015,8 @@ FAQ:
 
 **Q**: Does the test harness verify correctness?
 
-**A**: No -- it verifies consensus. For the reasons mentioned in the
-answer to the previous question, verifying correctness to the spec for a
-particular implementation must be left to that implementation's unit
+**A**: No -- it verifies consensus. Verifying correctness to the spec for
+a particular implementation must be left to that implementation's unit
 tests. If at least one of the implementations has correct behavior for a
 particular test vector, and this test harness confirms consensus among
 all implementations for that vector, then all implementations have

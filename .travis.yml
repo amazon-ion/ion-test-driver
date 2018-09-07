@@ -4,4 +4,4 @@ install:
   - "pip install -r requirements.txt"
   - "pip install ."
 script:
-  - amazon/iontest/ion_test_driver.py --help
+  - python amazon/iontest/ion_test_driver.py --help

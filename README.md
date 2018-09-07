@@ -4,6 +4,8 @@ Ion Test Driver
 A cross-implementation test driver for
 [Amazon Ion](http://amzn.github.io/ion-docs/) readers and writers.
 
+[![Build Status](https://travis-ci.org/amzn/ion-test-driver.svg?branch=master)](https://travis-ci.org/amzn/ion-test-driver)
+
 License
 ============================
 

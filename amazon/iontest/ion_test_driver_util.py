@@ -37,18 +37,21 @@ def log_call(log, args):
 
 
 class IonBuild:
-    def __init__(self, installer, executable):
+    def __init__(self, installer, executable, prefix):
         """
         Build information for an Ion resource.
 
         :param installer: function which builds the resource.
         :param executable: path to the resource's executable (if any), relative to the root of the implementation.
+        :param prefix: prefix of the command that runs executable. (e.g java requests java -jar)
         """
         self.install = installer
         self.execute = executable
+        self.prefix = prefix
 
 
 def install_no_op(log):
     pass
 
-NO_OP_BUILD = IonBuild(install_no_op, None)
+
+NO_OP_BUILD = IonBuild(install_no_op, None, None)

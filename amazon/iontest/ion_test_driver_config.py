@@ -27,7 +27,9 @@ ION_TESTS_SOURCE = 'https://github.com/amzn/ion-tests.git'
 # Accordingly, if tool dependencies are added here, a corresponding option should be added to the CLI.
 TOOL_DEPENDENCIES = {
     'cmake': 'cmake',
-    'git': 'git'
+    'git': 'git',
+    'maven': 'mvn',
+    'java': 'java'
 }
 
 
@@ -36,9 +38,15 @@ def install_ion_c(log):
     log_call(log, (TOOL_DEPENDENCIES['cmake'], '--build', '.'))
 
 
+def install_ion_java(log):
+    log_call(log, (TOOL_DEPENDENCIES['maven'], '-f', 'ion-java-cli/pom.xml', 'package'))
+
+
 ION_BUILDS = {
-    'ion-c': IonBuild(install_ion_c, os.path.join('tools', 'cli', 'ion')),
+    'ion-c': IonBuild(install_ion_c, os.path.join('tools', 'cli', 'ion'), ()),
     'ion-tests': NO_OP_BUILD,
+    'ion-java': IonBuild(install_ion_java, os.path.join('ion-java-cli', 'target', 'ion-java-cli-1.0.jar'),
+                         (TOOL_DEPENDENCIES['java'], "-jar"))
     # TODO add more implementations here
 }
 
@@ -46,5 +54,6 @@ ION_BUILDS = {
 # and should not be added here. For the proper description format, see the ion_test_driver CLI help.
 ION_IMPLEMENTATIONS = [
     'ion-c,https://github.com/amzn/ion-c.git,master',
+    'ion-java,https://github.com/amzn/ion-java,master'
     # TODO add more Ion implementations here
 ]

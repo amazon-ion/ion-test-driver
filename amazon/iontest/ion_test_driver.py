@@ -16,8 +16,8 @@
 
 Usage:
     ion_test_driver.py [--implementation <description>]... [--ion-tests <description>] [--test <type>]...
-                       [--local-only] [--cmake <path>] [--git <path>] [--maven <path>] [--java <path>]
-                       [--output-dir <dir>] [--results-file <file>] [<test_file>]...
+                       [--local-only] [--cmake <path>] [--git <path>] [--maven <path>] [--java <path>] [--npm <path>]
+                       [--node <path>] [--output-dir <dir>] [--results-file <file>] [<test_file>]...
     ion_test_driver.py (--list)
     ion_test_driver.py (-h | --help)
 
@@ -27,6 +27,10 @@ Options:
     --git <path>                        Path to the git executable.
 
     --maven <path>                      Path to the maven executable.
+
+    --npm <path>                        Path to npm executable.
+
+    --node <path>                       Path to the node executable.
 
     --java <path>                       Path to the java executable.
 

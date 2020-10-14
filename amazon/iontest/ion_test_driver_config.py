@@ -34,6 +34,16 @@ TOOL_DEPENDENCIES = {
     'java': 'java'
 }
 
+# command used for testing the existence of the executable
+TOOL_TEST_COMMAND = {
+    'cmake': '--help',
+    'git': '--help',
+    'maven': '--help',
+    'npm': '-v',
+    'node': '-v',
+    'java': '--help'
+}
+
 
 def install_ion_c(log):
     log_call(log, (TOOL_DEPENDENCIES['cmake'], '-DCMAKE_BUILD_TYPE=Debug'))

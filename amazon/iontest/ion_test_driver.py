@@ -71,8 +71,8 @@ from amazon.ion.simple_types import IonPySymbol, IonPyList
 from amazon.ion.util import Enum
 from docopt import docopt
 
-from amazon.iontest.ion_test_driver_config import TOOL_DEPENDENCIES, ION_BUILDS, ION_IMPLEMENTATIONS, ION_TESTS_SOURCE,\
-    RESULTS_FILE_DEFAULT
+from amazon.iontest.ion_test_driver_config import TOOL_DEPENDENCIES, ION_BUILDS, ION_IMPLEMENTATIONS, ION_TESTS_SOURCE, \
+    RESULTS_FILE_DEFAULT, TOOL_TEST_COMMAND
 from amazon.iontest.ion_test_driver_util import COMMAND_SHELL, log_call
 
 
@@ -92,11 +92,8 @@ def check_tool_dependencies(args):
             TOOL_DEPENDENCIES[name] = path
     for name, path in six.iteritems(TOOL_DEPENDENCIES):
         try:
-            # NOTE: if a tool dependency is added that doesn't have a `--help` command, the logic should be generalized
-            # to call a tool-specific command to test the existence of the executable. This should be a command that
-            # always returns zero.
             no_output = open(os.devnull, 'w')
-            check_call([path, '--help'], stdout=no_output, shell=COMMAND_SHELL)
+            check_call([path, TOOL_TEST_COMMAND[name]], stdout=no_output, shell=COMMAND_SHELL)
         except:
             raise ValueError(name + " not found. Try specifying its location using --" + name + ".")
         finally:

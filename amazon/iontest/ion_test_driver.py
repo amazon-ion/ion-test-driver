@@ -92,9 +92,6 @@ def check_tool_dependencies(args):
             TOOL_DEPENDENCIES[name] = path
     for name, path in six.iteritems(TOOL_DEPENDENCIES):
         try:
-            # NOTE: if a tool dependency is added that doesn't have a `--help` command, the logic should be generalized
-            # to call a tool-specific command to test the existence of the executable. This should be a command that
-            # always returns zero.
             no_output = open(os.devnull, 'w')
             check_call([path, TOOL_TEST_COMMAND[name]], stdout=no_output, shell=COMMAND_SHELL)
         except:

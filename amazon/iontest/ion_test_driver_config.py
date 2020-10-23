@@ -41,7 +41,7 @@ TOOL_TEST_COMMAND = {
     'maven': '--help',
     'npm': '-v',
     'node': '-v',
-    'java': '--help'
+    'java': '-version'
 }
 
 
@@ -74,7 +74,7 @@ ION_BUILDS = {
 # and should not be added here. For the proper description format, see the ion_test_driver CLI help.
 ION_IMPLEMENTATIONS = [
     'ion-c,https://github.com/amzn/ion-c.git,master',
-    'ion-java,https://github.com/amzn/ion-java,master',
+    'ion-java,https://github.com/amzn/ion-java.git,master',
     'ion-js,https://github.com/amzn/ion-js.git,master'
     # TODO add more Ion implementations here
 ]

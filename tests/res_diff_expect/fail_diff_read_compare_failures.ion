@@ -1,0 +1,36 @@
+$ion_1_0
+{
+ test: {
+  read_compare: {
+   message: "Read_compare: two revisions have different failures.",
+   failures: {
+    'ion-java_1': {
+     failures: ComparisonReport::[
+      {
+       message: "some errors 1",
+       lhs: {
+        location: "ion-test-driver/amazon/iontest/results/bad/test.ion/read/data/ion-java_1.ion"
+       },
+       rhs: {
+        location: "ion-test-driver/amazon/iontest/results/bad/test.ion/read/data/ion-java_2.ion"
+       }
+      }
+     ]
+    },
+    'ion-java_2': {
+     failures: ComparisonReport::[
+      {
+       message: "some errors",
+       lhs: {
+        location: "ion-test-driver/amazon/iontest/results/bad/test.ion/read/data/ion-java_1.ion"
+       },
+       rhs: {
+        location: "ion-test-driver/amazon/iontest/results/bad/test.ion/read/data/ion-java_2.ion"
+       }
+      }
+     ]
+    }
+   }
+  }
+ }
+}

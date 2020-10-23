@@ -1,0 +1,19 @@
+$ion_1_0
+{
+ test: {
+  read_compare: {
+   message: "Read_compare: new commit has different read compare error(s).",
+   read_compare: {
+    'ion-java_1': {
+    },
+    'ion-java_2': {
+     errors: ErrorReport::[
+      {
+       message: "test"
+      }
+     ]
+    }
+   }
+  }
+ }
+}

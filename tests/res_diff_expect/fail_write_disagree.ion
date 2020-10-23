@@ -1,0 +1,44 @@
+$ion_1_0
+{
+ test: {
+  write_compare: {
+   message: "Write_compare: write behavior changed. Each field within disagree list represents the implementation that is re-writing other implementations. Description below following the format: 'impl,type,file' where impl is the implementation used for writing files, type is either 'text' or 'binary' and file is the file that is re-written",
+   disagree_lists: {
+    'ion-java_1': {
+     'ion-java_1,binary,ion-c_1': [
+      "ion-java_2,binary,ion-c_1",
+      "ion-c_1,binary,ion-c_1"
+     ],
+     'ion-java_1,binary,ion-js_1': [
+      "ion-java_2,binary,ion-js_1"
+     ]
+    },
+    'ion-java_2': {
+     'ion-java_2,binary,ion-c_1': [
+      "ion-java_1,binary,ion-c_1"
+     ],
+     'ion-java_2,binary,ion-js_1': [
+      "ion-java_1,binary,ion-js_1"
+     ]
+    }
+   },
+   no_longer_agrees_with: {
+    'ion-java_2,binary,ion-c_1': [
+     "ion-java_1,binary,ion-c_1"
+    ],
+    'ion-java_2,binary,ion-js_1': [
+     "ion-java_1,binary,ion-js_1"
+    ]
+   },
+   now_agrees_with: {
+    'ion-java_1,binary,ion-c_1': [
+     "ion-java_2,binary,ion-c_1",
+     "ion-c_1,binary,ion-c_1"
+    ],
+    'ion-java_1,binary,ion-js_1': [
+     "ion-java_2,binary,ion-js_1"
+    ]
+   }
+  }
+ }
+}

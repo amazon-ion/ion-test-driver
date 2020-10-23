@@ -1,0 +1,19 @@
+$ion_1_0
+{
+ test: {
+  write_error: {
+   message: "Write_error: new commit has different write error(s).",
+   write_error: {
+    'ion-java_1': ErrorReport::[
+     {
+      error_type: WRITE,
+      message: "test message.",
+      location: "test"
+     }
+    ],
+    'ion-java_2': [
+    ]
+   }
+  }
+ }
+}

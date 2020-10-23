@@ -1,0 +1,28 @@
+{
+ bad: 	{},
+ good: {
+    "test": {
+        'ion-java_1': {
+            result: FAIL,
+            read_compare: {
+                failures: ComparisonReport::[
+                    {
+                        message: "some errors 1",
+                        lhs: {
+                            location: "ion-test-driver/amazon/iontest/results/good/test.ion/read/data/ion-java_1.ion",
+                         },
+                        rhs: {
+                            location: "ion-test-driver/amazon/iontest/results/good/test.ion/read/data/ion-java_2.ion",
+                        }
+                    }
+                ]
+            },
+        },
+        'ion-java_2': {
+            result: PASS
+        }
+	},
+ },
+ equivs: {},
+ 'non-equivs':{}
+}

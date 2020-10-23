@@ -1,0 +1,403 @@
+$ion_1_0
+{
+ 'decimals.ion': {
+  read_compare: {
+   message: "Read_compare: two revisions have different failures.",
+   failures: {
+    'ion-java_1': {
+    },
+    'ion-java_2': {
+     failures: ComparisonReport::[
+      {
+       result: "NOT_EQUAL",
+       message: "Didn't match ion_type",
+       lhs: {
+        location: "ion-test-driver/test_equivs/results/equivs/decimals.ion/read/data/ion-java_1.ion",
+        event: {
+         event_type: SCALAR,
+         ion_type: INT,
+         value_text: "123",
+         value_binary: [
+          224,
+          1,
+          0,
+          234,
+          33,
+          123
+         ],
+         depth: 1
+        },
+        event_index: 1
+       },
+       rhs: {
+        location: "ion-test-driver/test_equivs/results/equivs/decimals.ion/read/data/ion-java_1.ion",
+        event: {
+         event_type: SCALAR,
+         ion_type: DECIMAL,
+         value_text: "123.777",
+         value_binary: [
+          224,
+          1,
+          0,
+          234,
+          84,
+          195,
+          1,
+          227,
+          129
+         ],
+         depth: 1
+        },
+        event_index: 2
+       }
+      },
+      {
+       result: "NOT_EQUAL",
+       message: "Didn't match ion_type",
+       lhs: {
+        location: "ion-test-driver/test_equivs/results/equivs/decimals.ion/read/data/ion-java_1.ion",
+        event: {
+         event_type: SCALAR,
+         ion_type: INT,
+         value_text: "123",
+         value_binary: [
+          224,
+          1,
+          0,
+          234,
+          33,
+          123
+         ],
+         depth: 1
+        },
+        event_index: 1
+       },
+       rhs: {
+        location: "ion-test-driver/test_equivs/results/equivs/decimals.ion/read/data/ion-java_2.ion",
+        event: {
+         event_type: SCALAR,
+         ion_type: DECIMAL,
+         value_text: "123.777",
+         value_binary: [
+          224,
+          1,
+          0,
+          234,
+          84,
+          195,
+          1,
+          227,
+          129
+         ],
+         depth: 1
+        },
+        event_index: 2
+       }
+      },
+      {
+       result: "NOT_EQUAL",
+       message: "Didn't match ion_type",
+       lhs: {
+        location: "ion-test-driver/test_equivs/results/equivs/decimals.ion/read/data/ion-java_1.ion",
+        event: {
+         event_type: SCALAR,
+         ion_type: INT,
+         value_text: "123",
+         value_binary: [
+          224,
+          1,
+          0,
+          234,
+          33,
+          123
+         ],
+         depth: 1
+        },
+        event_index: 1
+       },
+       rhs: {
+        location: "ion-test-driver/test_equivs/build/ion-tests_fb77a08/iontestdata/good/equivs/decimals.ion",
+        event: {
+         event_type: SCALAR,
+         ion_type: DECIMAL,
+         value_text: "123.777",
+         value_binary: [
+          224,
+          1,
+          0,
+          234,
+          84,
+          195,
+          1,
+          227,
+          129
+         ],
+         depth: 1
+        },
+        event_index: 2
+       }
+      },
+      {
+       result: "NOT_EQUAL",
+       message: "Didn't match ion_type",
+       lhs: {
+        location: "ion-test-driver/test_equivs/results/equivs/decimals.ion/read/data/ion-java_2.ion",
+        event: {
+         event_type: SCALAR,
+         ion_type: INT,
+         value_text: "123",
+         value_binary: [
+          224,
+          1,
+          0,
+          234,
+          33,
+          123
+         ],
+         depth: 1
+        },
+        event_index: 1
+       },
+       rhs: {
+        location: "ion-test-driver/test_equivs/results/equivs/decimals.ion/read/data/ion-java_1.ion",
+        event: {
+         event_type: SCALAR,
+         ion_type: DECIMAL,
+         value_text: "123.777",
+         value_binary: [
+          224,
+          1,
+          0,
+          234,
+          84,
+          195,
+          1,
+          227,
+          129
+         ],
+         depth: 1
+        },
+        event_index: 2
+       }
+      },
+      {
+       result: "NOT_EQUAL",
+       message: "Didn't match ion_type",
+       lhs: {
+        location: "ion-test-driver/test_equivs/results/equivs/decimals.ion/read/data/ion-java_2.ion",
+        event: {
+         event_type: SCALAR,
+         ion_type: INT,
+         value_text: "123",
+         value_binary: [
+          224,
+          1,
+          0,
+          234,
+          33,
+          123
+         ],
+         depth: 1
+        },
+        event_index: 1
+       },
+       rhs: {
+        location: "ion-test-driver/test_equivs/results/equivs/decimals.ion/read/data/ion-java_2.ion",
+        event: {
+         event_type: SCALAR,
+         ion_type: DECIMAL,
+         value_text: "123.777",
+         value_binary: [
+          224,
+          1,
+          0,
+          234,
+          84,
+          195,
+          1,
+          227,
+          129
+         ],
+         depth: 1
+        },
+        event_index: 2
+       }
+      },
+      {
+       result: "NOT_EQUAL",
+       message: "Didn't match ion_type",
+       lhs: {
+        location: "ion-test-driver/test_equivs/results/equivs/decimals.ion/read/data/ion-java_2.ion",
+        event: {
+         event_type: SCALAR,
+         ion_type: INT,
+         value_text: "123",
+         value_binary: [
+          224,
+          1,
+          0,
+          234,
+          33,
+          123
+         ],
+         depth: 1
+        },
+        event_index: 1
+       },
+       rhs: {
+        location: "ion-test-driver/test_equivs/build/ion-tests_fb77a08/iontestdata/good/equivs/decimals.ion",
+        event: {
+         event_type: SCALAR,
+         ion_type: DECIMAL,
+         value_text: "123.777",
+         value_binary: [
+          224,
+          1,
+          0,
+          234,
+          84,
+          195,
+          1,
+          227,
+          129
+         ],
+         depth: 1
+        },
+        event_index: 2
+       }
+      },
+      {
+       result: "NOT_EQUAL",
+       message: "Didn't match ion_type",
+       lhs: {
+        location: "ion-test-driver/test_equivs/build/ion-tests_fb77a08/iontestdata/good/equivs/decimals.ion",
+        event: {
+         event_type: SCALAR,
+         ion_type: INT,
+         value_text: "123",
+         value_binary: [
+          224,
+          1,
+          0,
+          234,
+          33,
+          123
+         ],
+         depth: 1
+        },
+        event_index: 1
+       },
+       rhs: {
+        location: "ion-test-driver/test_equivs/results/equivs/decimals.ion/read/data/ion-java_1.ion",
+        event: {
+         event_type: SCALAR,
+         ion_type: DECIMAL,
+         value_text: "123.777",
+         value_binary: [
+          224,
+          1,
+          0,
+          234,
+          84,
+          195,
+          1,
+          227,
+          129
+         ],
+         depth: 1
+        },
+        event_index: 2
+       }
+      },
+      {
+       result: "NOT_EQUAL",
+       message: "Didn't match ion_type",
+       lhs: {
+        location: "ion-test-driver/test_equivs/build/ion-tests_fb77a08/iontestdata/good/equivs/decimals.ion",
+        event: {
+         event_type: SCALAR,
+         ion_type: INT,
+         value_text: "123",
+         value_binary: [
+          224,
+          1,
+          0,
+          234,
+          33,
+          123
+         ],
+         depth: 1
+        },
+        event_index: 1
+       },
+       rhs: {
+        location: "ion-test-driver/test_equivs/results/equivs/decimals.ion/read/data/ion-java_2.ion",
+        event: {
+         event_type: SCALAR,
+         ion_type: DECIMAL,
+         value_text: "123.777",
+         value_binary: [
+          224,
+          1,
+          0,
+          234,
+          84,
+          195,
+          1,
+          227,
+          129
+         ],
+         depth: 1
+        },
+        event_index: 2
+       }
+      },
+      {
+       result: "NOT_EQUAL",
+       message: "Didn't match ion_type",
+       lhs: {
+        location: "ion-test-driver/test_equivs/build/ion-tests_fb77a08/iontestdata/good/equivs/decimals.ion",
+        event: {
+         event_type: SCALAR,
+         ion_type: INT,
+         value_text: "123",
+         value_binary: [
+          224,
+          1,
+          0,
+          234,
+          33,
+          123
+         ],
+         depth: 1
+        },
+        event_index: 1
+       },
+       rhs: {
+        location: "ion-test-driver/test_equivs/build/ion-tests_fb77a08/iontestdata/good/equivs/decimals.ion",
+        event: {
+         event_type: SCALAR,
+         ion_type: DECIMAL,
+         value_text: "123.777",
+         value_binary: [
+          224,
+          1,
+          0,
+          234,
+          84,
+          195,
+          1,
+          227,
+          129
+         ],
+         depth: 1
+        },
+        event_index: 2
+       }
+      }
+     ]
+    }
+   }
+  }
+ }
+}

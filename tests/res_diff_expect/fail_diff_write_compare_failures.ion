@@ -1,0 +1,31 @@
+$ion_1_0
+{
+ test: {
+  write_compare: {
+   message: "Write_compare: two revisions have different failures.",
+   failures: {
+    'ion-java_1': {
+     failures: ComparisonReport::[
+      {
+       result: "NOT_EQUAL",
+       message: "two event streams have different size",
+       lhs: {
+        location: "ion-test-driver/amazon/iontest/results/good/test.ion/write/ion-java_1/binary/data/ion-java_1.10n"
+       },
+       rhs: {
+        location: "ion-test-driver/amazon/iontest/results/good/test.ion/write/ion-java_2/binary/data/ion-java_1.10n"
+       }
+      }
+     ]
+    },
+    'ion-java_2': {
+     failures: ComparisonReport::[
+      {
+       message: "some errors.."
+      }
+     ]
+    }
+   }
+  }
+ }
+}

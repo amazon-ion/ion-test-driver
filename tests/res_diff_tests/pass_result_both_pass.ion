@@ -1,0 +1,15 @@
+{
+ bad: 	{
+	"test": {
+        'ion-java_1': {
+            result: PASS
+        },
+        'ion-java_2': {
+            result:PASS
+        }
+	},
+ },
+ good: {},
+ equivs: {},
+ 'non-equivs':{}
+}

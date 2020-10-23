@@ -1,0 +1,21 @@
+{
+ bad: 	{},
+ good: {
+    "test": {
+        'ion-java_1': {
+            result: FAIL,
+            write_error: ErrorReport::[{
+                    message: "reason one.",
+            }]
+        },
+        'ion-java_2': {
+            result:FAIL,
+            write_error: ErrorReport::[{
+                    message: "reason two.",
+            }]
+        }
+	},
+ },
+ equivs: {},
+ 'non-equivs':{}
+}

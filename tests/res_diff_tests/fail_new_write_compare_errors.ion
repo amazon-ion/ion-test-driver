@@ -1,0 +1,22 @@
+{
+ bad: 	{},
+ good: {
+    "test": {
+        'ion-java_1': {
+            result: FAIL,
+        },
+        'ion-java_2': {
+            result:FAIL,
+            write_compare: {
+                errors: ErrorReport::[
+                    {
+                      message: "test",
+                    }
+                ]
+             }
+        }
+	},
+ },
+ equivs: {},
+ 'non-equivs':{}
+}

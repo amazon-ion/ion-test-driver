@@ -1,0 +1,17 @@
+$ion_1_0
+{
+ test: {
+  read_compare: {
+   message: "Read_compare: two revisions agree with each other but have different disagree lists. ",
+   disagree_lists: {
+    'ion-java_1': [
+     "ion-c_1",
+     "ion-js_1"
+    ],
+    'ion-java_2': [
+     "ion-c_1"
+    ]
+   }
+  }
+ }
+}

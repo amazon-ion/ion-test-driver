@@ -1,0 +1,19 @@
+$ion_1_0
+{
+ test: {
+  read_error: {
+   message: "Read_error: new commit has different read error(s).",
+   read_error: {
+    'ion-java_1': ErrorReport::[
+     {
+      error_type: READ,
+      message: "test message.",
+      location: "test"
+     }
+    ],
+    'ion-java_2': [
+    ]
+   }
+  }
+ }
+}

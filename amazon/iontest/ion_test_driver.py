@@ -18,6 +18,7 @@ Usage:
     ion_test_driver.py [--implementation <description>]... [--ion-tests <description>] [--test <type>]...
                        [--local-only] [--cmake <path>] [--git <path>] [--maven <path>] [--java <path>] [--npm <path>]
                        [--node <path>] [--output-dir <dir>] [--results-file <file>] [<test_file>]...
+    ion_test_driver.py --results-diff <first_description> <second_description> <results_file> [--output-dir <dir>]
     ion_test_driver.py (--list)
     ion_test_driver.py (-h | --help)
 
@@ -55,6 +56,13 @@ Options:
                                         `ion-test-driver-results.ion` under the directory specified by the
                                         `--output-dir` option.
 
+    -R, --results-diff                  Given two implementation descriptions of the forms name,commit_hash or
+                                        name,location,revision. Name is the implementation's name and revision is
+                                        optional, may be either a branch name or commit hash. Analyze an existing
+                                        results file to identify any differences between the two implementations.
+                                        The order of two implementations matters and the analysis result is based on the
+                                        first implementation.
+
     -t, --test <type>                   Perform a particular test type or types, chosen from `good`, `bad`, `equivs`,
                                         `non-equivs`, and `all`. [default: all]
 
@@ -62,11 +70,13 @@ Options:
 """
 import os
 import shutil
+import sys
 from io import FileIO
 from subprocess import check_call, check_output, Popen, PIPE
 import six
 from amazon.ion import simpleion
 from amazon.ion.core import IonType
+from amazon.ion.equivalence import ion_equals
 from amazon.ion.simple_types import IonPySymbol, IonPyList
 from amazon.ion.util import Enum
 from docopt import docopt
@@ -78,6 +88,7 @@ from amazon.iontest.ion_test_driver_util import COMMAND_SHELL, log_call
 
 ION_SUFFIX_TEXT = '.ion'
 ION_SUFFIX_BINARY = '.10n'
+ION_TEST_DRIVER_PATH = os.path.abspath(__file__)
 
 
 def check_tool_dependencies(args):
@@ -738,6 +749,402 @@ def parse_implementations(descriptions, output_root):
             for description in descriptions]
 
 
+def write_errors(report, first_field, first_report, second_field, second_report, field, msg):
+    report[TestFile.ERROR_MESSAGE_FIELD] = msg
+    errors = {}
+    if first_field is not None:
+        errors[first_field] = first_report
+    if second_field is not None:
+        errors[second_field] = second_report
+    report[field] = errors
+
+
+def write_to_report(cur_result, final_result, check_report, file, field):
+    cur_result[field] = check_report
+    final_result[file] = cur_result
+
+
+def validate_read_location(location, test_file):
+    location_array = location.split("/")
+    if location_array[-1] != test_file:
+        if location_array[-2] != 'data' or location_array[-3] != 'read' or location_array[-6] != 'results':
+            raise ValueError("Invalid location path in file: " + test_file)
+
+
+def validate_write_location(location, test_file):
+    location_array = location.split("/")
+    if location_array[-1] != test_file:
+        if location_array[-2] != 'data' or (location_array[-3] != 'binary' and location_array[-3] != 'text') or location_array[-5] != 'write' or location_array[-8] != 'results':
+            raise ValueError("Invalid location path in file: " + test_file)
+
+
+def get_name(location, test_file):
+    validate_read_location(location, test_file)
+    name = location.split("/")[-1]
+    if '.' in name:
+        name = name[0:name.rfind('.')]
+    return name
+
+
+def get_name_for_write(location, test_file):
+    validate_write_location(location, test_file)
+    location_array = location.split("/")
+    # implementation's name
+    impl = location_array[-4]
+    if '.' in impl:
+        impl = impl[0:impl.rfind('.')]
+    # type can be binary or text
+    t = location_array[-3]
+    # file name that be re-written
+    file = location_array[-1]
+    if '.' in file:
+        file = file[0:file.rfind('.')]
+    return impl, t, file
+
+
+def find_disagree_list(failures_list, impl, test_file):
+    disagree_list = []
+    for report in failures_list:
+        cur_first_impl = get_name(report['lhs']['location'], test_file)
+        cur_second_impl = get_name(report['rhs']['location'], test_file)
+        if impl == cur_first_impl and cur_second_impl not in disagree_list:
+            disagree_list.append(cur_second_impl)
+        if impl == cur_second_impl and cur_first_impl not in disagree_list:
+            disagree_list.append(cur_first_impl)
+    return disagree_list
+
+
+def get_description_for_write(report, test_file, is_first):
+    l = 'lhs' if is_first else 'rhs'
+    cur_impl, cur_t, cur_file = get_name_for_write(report[l]['location'], test_file)
+    if cur_t != "text" and cur_t != "binary":
+        first_name = cur_file
+    else:
+        first_name = cur_impl + ',' + cur_t + ',' + cur_file
+    return first_name
+
+
+def append_description_for_write(impl, append_to_name, name, disagree_lists):
+    if impl == append_to_name.split(',')[0]:
+        if append_to_name not in disagree_lists:
+            disagree_lists[append_to_name] = []
+        if name not in disagree_lists[append_to_name]:
+            disagree_lists[append_to_name].append(name)
+
+
+def find_disagree_lists_for_write(failures_list, impl, test_file):
+    disagree_lists = {}
+    for report in failures_list:
+        first_name = get_description_for_write(report, test_file, True)
+        second_name = get_description_for_write(report, test_file, False)
+        append_description_for_write(impl, first_name, second_name, disagree_lists)
+        append_description_for_write(impl, second_name, first_name, disagree_lists)
+    return disagree_lists
+
+
+def append_list(first_list, second_list, match_impl, append_to_list):
+    for impl in first_list:
+        if impl not in second_list and impl != match_impl:
+            append_to_list.append(impl)
+
+
+def analyze_list(first_list, second_list, first_impl, second_impl):
+    no_more_agree_list = []
+    start_agree_list = []
+    append_list(first_list, second_list, second_impl, start_agree_list)
+    append_list(second_list, first_list, first_impl, no_more_agree_list)
+    return no_more_agree_list, start_agree_list
+
+
+def append_lists(first_lists, second_lists, append_to_lists):
+    for k in first_lists.keys():
+        if k not in second_lists.keys():
+            append_to_lists[k] = first_lists[k]
+        else:
+            for impl in first_lists[k]:
+                if impl not in second_lists[k]:
+                    if k not in append_to_lists.keys():
+                        append_to_lists[k] = []
+                    append_to_lists[k].append(impl)
+
+
+def analyze_lists(first_lists, second_lists):
+    no_more_agree_lists = {}
+    start_agree_lists = {}
+    append_lists(first_lists, second_lists, start_agree_lists)
+    append_lists(second_lists, first_lists, no_more_agree_lists)
+    return no_more_agree_lists, start_agree_lists
+
+
+def is_name_in_lists(lists, name):
+    for k in lists.keys():
+        if name in lists[k]:
+            return True
+    return False
+
+
+def are_lists_agree(first_lists, second_lists):
+    for k in first_lists.keys():
+        if is_name_in_lists(second_lists, k):
+            return False
+    for k in second_lists.keys():
+        if is_name_in_lists(first_lists, k):
+            return False
+    return True
+
+
+def parse_des_for_res_diff(description):
+    des_list = description.split(',')
+    if len(des_list) == 2:
+        name = des_list[0] + '_' + des_list[1]
+    elif len(des_list) == 3:
+        dir_name, f = os.path.split(ION_TEST_DRIVER_PATH)
+        temp_dir = os.path.join(dir_name, 'temp')
+        if os.path.exists(temp_dir):
+            shutil.rmtree(temp_dir)
+        check_call((TOOL_DEPENDENCIES['git'], 'clone', '--recursive', des_list[1], temp_dir), shell=COMMAND_SHELL)
+        os.chdir(temp_dir)
+        check_call((TOOL_DEPENDENCIES['git'], 'config', '--global', 'advice.detachedHead', 'false'), shell=COMMAND_SHELL)
+        check_call((TOOL_DEPENDENCIES['git'], 'checkout', des_list[2]), shell=COMMAND_SHELL)
+        commit = check_output((TOOL_DEPENDENCIES['git'], 'rev-parse', '--short', 'HEAD')).strip()
+        name = des_list[0] + '_' + commit.decode()
+        os.chdir(dir_name)
+        shutil.rmtree(temp_dir)
+    else:
+        raise ValueError("Invalid implementation description.")
+    return name
+
+
+def write_errors_to_report(report, first_field, first_report, second_field, second_report, error_field, msg, cur_result,
+                           final_result, test_file, report_field):
+    write_errors(report, first_field, first_report, second_field,
+                 second_report, error_field, msg)
+    write_to_report(cur_result, final_result, report, test_file, report_field)
+
+
+def validate_results(report, result_field, read_error, read_compare, write_error, write_compare, impl, test_file):
+    if result_field not in report.keys():
+        raise ValueError("Invalid result: missing result for '" + impl + "' in '" + test_file + "'.")
+    if ion_equals(report[result_field], TestReport.PASS):
+        if read_error in report.keys() or read_compare in report.keys() or write_error in report.keys() \
+                or write_compare in report.keys():
+            raise ValueError("Invalid report: result passes with error(s) for '" + impl + "' in '" + test_file + "'.")
+
+
+def analyze_results(first_implementation, second_implementation, results_file, output_root):
+    return_val = 0
+    return_err = 1
+    result_field = 'result'
+    disagree_lists = 'disagree_lists'
+    no_longer_agrees_with = 'no_longer_agrees_with'
+    now_agrees_with = 'now_agrees_with'
+
+    first_impl = parse_des_for_res_diff(first_implementation)
+    second_impl = parse_des_for_res_diff(second_implementation)
+
+    if first_impl.split('_')[0] != second_impl.split('_')[0]:
+        raise ValueError("We only support analyzing two different revisions of the same implementation for now.")
+    final_result = {}
+    data = simpleion.load(FileIO(results_file))
+
+    for test_type in data:
+        files = data[test_type]
+        for test_file in files:
+            implementations = files[test_file]
+            cur_result = {}
+            first_report = None
+            second_report = None
+            for test_implementation in implementations:
+                report = implementations[test_implementation]
+                if test_implementation == first_impl:
+                    first_report = report
+                if test_implementation == second_impl:
+                    second_report = report
+
+            if first_report is None:
+                raise ValueError("Didn't find the first implementation for file: '" + test_file + "'.")
+            elif second_report is None:
+                raise ValueError("Didn't find the second implementation for file: '" + test_file + "'.")
+
+            # Step one analyze result field
+            result_report = {}
+            validate_results(first_report, result_field, TestReport.READ_ERROR, TestReport.READ_COMPARE,
+                             TestReport.WRITE_ERROR, TestReport.WRITE_COMPARE, first_impl, test_file)
+            validate_results(second_report, result_field, TestReport.READ_ERROR, TestReport.READ_COMPARE,
+                             TestReport.WRITE_ERROR, TestReport.WRITE_COMPARE, second_impl, test_file)
+            if ion_equals(first_report[result_field], TestReport.PASS) and \
+                    ion_equals(second_report[result_field], TestReport.PASS):
+                continue
+
+            # Step two analyze read_error field
+            read_report = {}
+            first_read_error = first_report[TestReport.READ_ERROR] \
+                if TestReport.READ_ERROR in first_report.keys() else []
+            second_read_error = second_report[TestReport.READ_ERROR] \
+                if TestReport.READ_ERROR in second_report.keys() else []
+            if first_read_error != second_read_error:
+                new_errors = []
+                for err in second_read_error:
+                    if err not in first_read_error:
+                        new_errors.append(err)
+                message = "Read_error: new commit has different read error(s)."
+                write_errors_to_report(read_report, first_impl, first_read_error, second_impl, second_read_error,
+                                       TestReport.READ_ERROR, message, cur_result, final_result, test_file,
+                                       TestReport.READ_ERROR)
+                if any(new_errors):
+                    return_val = return_err
+                    continue
+
+            # Step three analyze read_compare field
+            read_compare_report = {}
+            # check if 'errors' field same
+            first_read_compare = first_report[
+                TestReport.READ_COMPARE] if TestReport.READ_COMPARE in first_report.keys() else {}
+            second_read_compare = second_report[
+                TestReport.READ_COMPARE] if TestReport.READ_COMPARE in second_report.keys() else {}
+            first_read_compare_errors = first_read_compare[TestReport.ERRORS_FIELD] \
+                if TestReport.ERRORS_FIELD in first_read_compare.keys() else []
+            second_read_compare_errors = second_read_compare[TestReport.ERRORS_FIELD] \
+                if TestReport.ERRORS_FIELD in second_read_compare.keys() else []
+            if first_read_compare_errors != second_read_compare_errors:
+                new_errors = []
+                for err in second_read_compare_errors:
+                    if err not in first_read_compare_errors:
+                        new_errors.append(err)
+                message = "Read_compare: new commit has different read compare error(s)."
+                write_errors_to_report(read_compare_report, first_impl, first_read_compare, second_impl,
+                                       second_read_compare, TestReport.READ_COMPARE, message, cur_result,
+                                       final_result, test_file, TestReport.READ_COMPARE)
+                if any(new_errors):
+                    return_val = return_err
+                    continue
+            # check if 'failures' field same
+            first_read_compare_failures = first_read_compare[TestReport.COMPARISON_FAILURES_FIELD] \
+                if TestReport.COMPARISON_FAILURES_FIELD in first_read_compare.keys() else []
+            second_read_compare_failures = second_read_compare[TestReport.COMPARISON_FAILURES_FIELD] \
+                if TestReport.COMPARISON_FAILURES_FIELD in second_read_compare.keys() else []
+            if first_read_compare_failures != second_read_compare_failures:
+                message = "Read_compare: two revisions have different failures."
+                write_errors_to_report(read_compare_report, first_impl, first_read_compare, second_impl,
+                                       second_read_compare, TestReport.COMPARISON_FAILURES_FIELD, message, cur_result,
+                                       final_result, test_file, TestReport.READ_COMPARE)
+                return_val = return_err
+                continue
+            # get two disagree lists
+            first_disagree_list = find_disagree_list(first_read_compare_failures, first_impl, test_file)
+            second_disagree_list = find_disagree_list(first_read_compare_failures, second_impl, test_file)
+            # analyze disagree list
+            if second_impl not in first_disagree_list and first_impl not in second_disagree_list:
+                if first_disagree_list != second_disagree_list:
+                    message = "Read_compare: two revisions agree with each other " \
+                              "but have different disagree lists. "
+                    write_errors_to_report(read_compare_report, first_impl, first_disagree_list, second_impl,
+                                           second_disagree_list, disagree_lists, message,
+                                           cur_result, final_result, test_file, TestReport.READ_COMPARE)
+                    no_more_agree_list, start_agree_list = analyze_list(first_disagree_list, second_disagree_list,
+                                                                        first_impl, second_impl)
+                    if any(no_more_agree_list):
+                        return_val = return_err
+                        continue
+            elif second_impl in first_disagree_list and first_impl in second_disagree_list:
+                no_more_agree_list, start_agree_list = analyze_list(first_disagree_list, second_disagree_list,
+                                                                    first_impl, second_impl)
+                read_compare_report = {
+                    TestFile.ERROR_MESSAGE_FIELD: "Read_compare: read behavior changed against other "
+                                                  "implementations.",
+                    disagree_lists: {first_impl: first_disagree_list, second_impl: second_disagree_list},
+                    no_longer_agrees_with: no_more_agree_list,
+                    now_agrees_with: start_agree_list
+                }
+                write_to_report(cur_result, final_result, read_compare_report, test_file, TestReport.READ_COMPARE)
+                return_val = return_err
+                continue
+
+            # Step four analyze write_error field
+            write_report = {}
+            first_write_error = first_report[TestReport.WRITE_ERROR] \
+                if TestReport.WRITE_ERROR in first_report.keys() else []
+            second_write_error = second_report[TestReport.WRITE_ERROR] \
+                if TestReport.WRITE_ERROR in second_report.keys() else []
+            if first_write_error != second_write_error:
+                new_errors = []
+                for err in second_write_error:
+                    if err not in first_write_error:
+                        new_errors.append(err)
+                message = "Write_error: new commit has different write error(s)."
+                write_errors_to_report(write_report, first_impl, first_write_error, second_impl,
+                                       second_write_error, TestReport.WRITE_ERROR, message, cur_result,
+                                       final_result, test_file, TestReport.WRITE_ERROR)
+                if any(new_errors):
+                    return_val = return_err
+                    continue
+
+            # Step five analyze write_compare field
+            write_compare_report = {}
+            # check if 'errors' field same
+            first_write_compare = first_report[TestReport.WRITE_COMPARE] \
+                if TestReport.WRITE_COMPARE in first_report.keys() else {}
+            second_write_compare = second_report[TestReport.WRITE_COMPARE] \
+                if TestReport.WRITE_COMPARE in second_report.keys() else {}
+            first_write_compare_errors = first_write_compare[TestReport.ERRORS_FIELD] \
+                if TestReport.ERRORS_FIELD in first_write_compare.keys() else []
+            second_write_compare_errors = second_write_compare[TestReport.ERRORS_FIELD] \
+                if TestReport.ERRORS_FIELD in second_write_compare.keys() else []
+            if first_write_compare_errors != second_write_compare_errors:
+                new_errors = []
+                for err in second_write_compare_errors:
+                    if err not in first_write_compare_errors:
+                        new_errors.append(err)
+                message = "Write_compare: new commit has different write compare error(s)"
+                write_errors_to_report(write_compare_report, first_impl, first_write_compare, second_impl,
+                                       second_write_compare, TestReport.WRITE_COMPARE, message, cur_result,
+                                       final_result, test_file, TestReport.WRITE_COMPARE)
+                if any(new_errors):
+                    return_val = return_err
+                    continue
+            # check if 'failures' field same
+            first_write_compare_failures = first_write_compare[TestReport.COMPARISON_FAILURES_FIELD] \
+                if TestReport.COMPARISON_FAILURES_FIELD in first_write_compare.keys() else []
+            second_write_compare_failures = second_write_compare[TestReport.COMPARISON_FAILURES_FIELD] \
+                if TestReport.COMPARISON_FAILURES_FIELD in second_write_compare.keys() else []
+            if first_write_compare_failures != second_write_compare_failures:
+                message = "Write_compare: two revisions have different failures."
+                write_errors_to_report(write_compare_report, first_impl, first_write_compare, second_impl,
+                                       second_write_compare, TestReport.COMPARISON_FAILURES_FIELD, message,
+                                       cur_result, final_result, test_file, TestReport.WRITE_COMPARE)
+                return_val = return_err
+                continue
+            # get two disagree lists
+            first_disagree_list_for_write = find_disagree_lists_for_write(first_write_compare_failures, first_impl, test_file)
+            second_disagree_list_for_write = find_disagree_lists_for_write(second_write_compare_failures, second_impl, test_file)
+            if not are_lists_agree(first_disagree_list_for_write, second_disagree_list_for_write):
+                no_more_agree_lists, start_agree_lists = analyze_lists(first_disagree_list_for_write,
+                                                                       second_disagree_list_for_write)
+                write_compare_report = {
+                    TestFile.ERROR_MESSAGE_FIELD: "Write_compare: write behavior changed. "
+                                                  "Each field within disagree list represents the implementation that "
+                                                  "is re-writing other implementations. Description below following "
+                                                  "the format: 'impl,type,file' where impl is the implementation used "
+                                                  "for writing files, type is either 'text' or 'binary' and "
+                                                  "file is the file that is re-written",
+                    disagree_lists: {first_impl: first_disagree_list_for_write,
+                                     second_impl: second_disagree_list_for_write},
+                    no_longer_agrees_with: no_more_agree_lists,
+                    now_agrees_with: start_agree_lists,
+                }
+                write_to_report(cur_result, final_result, write_compare_report, test_file, TestReport.WRITE_COMPARE)
+                return_val = return_err
+                continue
+
+    if '.' in output_root:
+        output_root = output_root[0:output_root.rfind('.')] + '.ion'
+    else:
+        output_root = output_root + '.ion'
+    simpleion.dump(final_result, FileIO(output_root, mode='wb'), binary=False, indent=' ')
+    print('Analysis complete with status \'%d\'. Results written to %s.' % (return_val, output_root))
+    sys.exit(return_val)
+
+
 def ion_test_driver(arguments):
     if arguments['--help']:
         print(__doc__)
@@ -745,6 +1152,14 @@ def ion_test_driver(arguments):
         for impl_name in ION_BUILDS.keys():
             if impl_name != 'ion-tests':
                 print(impl_name)
+    elif arguments['--results-diff']:
+        output_root = os.path.abspath(arguments['--output-dir'])
+        if arguments['--output-dir'] == '.':
+            output_root = os.path.join(output_root, 'result.ion')
+        first_implementation = arguments['<first_description>']
+        second_implementation = arguments['<second_description>']
+        results_file = os.path.abspath(arguments['<results_file>'])
+        return analyze_results(first_implementation, second_implementation, results_file, output_root)
     else:
         output_root = os.path.abspath(arguments['--output-dir'])
         if not os.path.exists(output_root):

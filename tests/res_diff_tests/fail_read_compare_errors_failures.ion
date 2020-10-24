@@ -1,0 +1,68 @@
+{
+ bad: {},
+ good: {
+    "test": {
+        'ion-java_1': {
+            result: FAIL,
+            read_compare: {
+                failures: ComparisonReport::[
+                    {
+                        result: "NOT_EQUAL",
+                        message: "two event streams have different size",
+                        lhs: {
+                            location: "ion-test-driver/amazon/iontest/results/good/test.ion/write/ion-java_1/binary/data/ion-java_1.10n",
+                         },
+                        rhs: {
+                            location: "ion-test-driver/amazon/iontest/results/good/test.ion/write/ion-c_1/binary/data/ion-java_1.10n",
+                        }
+                    },
+                    {
+                        result: "NOT_EQUAL",
+                        message: "two event streams have different size",
+                        lhs: {
+                            location: "ion-test-driver/amazon/iontest/results/good/test.ion/write/ion-java_2/binary/data/ion-java_1.10n",
+                        },
+                        rhs: {
+                            location: "ion-test-driver/amazon/iontest/results/good/test.ion/write/ion-c_1/binary/data/ion-java_1.10n",
+                        }
+                    }
+                ]
+            },
+        },
+        'ion-java_2': {
+            result:FAIL,
+            read_compare: {
+                errors: ErrorReport::[
+                    {
+                      message: "test2",
+                    }
+                ],
+                failures: ComparisonReport::[
+                    {
+                        result: "NOT_EQUAL",
+                        message: "two event streams have different size",
+                        lhs: {
+                            location: "ion-test-driver/amazon/iontest/results/good/test.ion/write/ion-java_1/binary/data/ion-java_1.10n",
+                         },
+                        rhs: {
+                            location: "ion-test-driver/amazon/iontest/results/good/test.ion/write/ion-c_1/binary/data/ion-java_1.10n",
+                        }
+                    },
+                    {
+                        result: "NOT_EQUAL",
+                        message: "two event streams have different size",
+                        lhs: {
+                            location: "ion-test-driver/amazon/iontest/results/good/test.ion/write/ion-java_2/binary/data/ion-java_1.10n",
+                        },
+                        rhs: {
+                            location: "ion-test-driver/amazon/iontest/results/good/test.ion/write/ion-c_1/binary/data/ion-java_1.10n",
+                        }
+                    }
+                ]
+            },
+        }
+	},
+ },
+ equivs: {},
+ 'non-equivs':{}
+}

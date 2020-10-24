@@ -1,0 +1,29 @@
+{
+ bad: 	{},
+ good: {
+    "test": {
+        'ion-java_1': {
+            result: FAIL,
+            write_error: ErrorReport::[
+                {
+                    error_type: WRITE,
+                    message: "test message.",
+                },
+                {
+                    error_type: WRITE,
+                    message: "test message 2.",
+                }
+            ]
+        },
+        'ion-java_2': {
+            result:FAIL,
+            write_error: ErrorReport::[{
+                    error_type: WRITE,
+                    message: "test message.",
+            }]
+        }
+	},
+ },
+ equivs: {},
+ 'non-equivs':{}
+}

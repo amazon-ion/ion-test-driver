@@ -1,0 +1,379 @@
+{
+ bad: {},
+ good: {},
+ equivs: {},
+ 'non-equivs':{
+    'symbols.ion': {
+      'ion-java_1': {
+        result: FAIL,
+        read_compare: {
+          failures: ComparisonReport::[
+            {
+              result: "EQUAL",
+              message: "Equivalent values in a non-equivs set.",
+              lhs: {
+                location: "ion-test-driver/test_equivs/results/non-equivs/symbols.ion/read/data/ion-java_1.ion",
+                event: {
+                  event_type: SCALAR,
+                  ion_type: SYMBOL,
+                  value_text: "$ion",
+                  value_binary: [
+                    224,
+                    1,
+                    0,
+                    234,
+                    113,
+                    1
+                  ],
+                  depth: 0
+                },
+                event_index: 9
+              },
+              rhs: {
+                location: "ion-test-driver/test_equivs/results/non-equivs/symbols.ion/read/data/ion-java_1.ion",
+                event: {
+                  event_type: SCALAR,
+                  ion_type: SYMBOL,
+                  value_text: "$ion",
+                  value_binary: [
+                    224,
+                    1,
+                    0,
+                    234,
+                    113,
+                    1
+                  ],
+                  depth: 0
+                },
+                event_index: 24
+              }
+            },
+            {
+              result: "EQUAL",
+              message: "Equivalent values in a non-equivs set.",
+              lhs: {
+                location: "ion-test-driver/test_equivs/results/non-equivs/symbols.ion/read/data/ion-java_1.ion",
+                event: {
+                  event_type: SCALAR,
+                  ion_type: SYMBOL,
+                  value_text: "$ion",
+                  value_binary: [
+                    224,
+                    1,
+                    0,
+                    234,
+                    113,
+                    1
+                  ],
+                  depth: 0
+                },
+                event_index: 9
+              },
+              rhs: {
+                location: "ion-test-driver/test_equivs/results/non-equivs/symbols.ion/read/data/ion-java_2.ion",
+                event: {
+                  event_type: SCALAR,
+                  ion_type: SYMBOL,
+                  value_text: "$ion",
+                  value_binary: [
+                    224,
+                    1,
+                    0,
+                    234,
+                    113,
+                    1
+                  ],
+                  depth: 0
+                },
+                event_index: 24
+              }
+            },
+            {
+              result: "EQUAL",
+              message: "Equivalent values in a non-equivs set.",
+              lhs: {
+                location: "ion-test-driver/test_equivs/results/non-equivs/symbols.ion/read/data/ion-java_1.ion",
+                event: {
+                  event_type: SCALAR,
+                  ion_type: SYMBOL,
+                  value_text: "$ion",
+                  value_binary: [
+                    224,
+                    1,
+                    0,
+                    234,
+                    113,
+                    1
+                  ],
+                  depth: 0
+                },
+                event_index: 9
+              },
+              rhs: {
+                location: "ion-test-driver/test_equivs/build/ion-tests_fb77a08/iontestdata/good/non-equivs/symbols.ion",
+                event: {
+                  event_type: SCALAR,
+                  ion_type: SYMBOL,
+                  value_text: "$ion",
+                  value_binary: [
+                    224,
+                    1,
+                    0,
+                    234,
+                    113,
+                    1
+                  ],
+                  depth: 0
+                },
+                event_index: 24
+              }
+            },
+            {
+              result: "EQUAL",
+              message: "Equivalent values in a non-equivs set.",
+              lhs: {
+                location: "ion-test-driver/test_equivs/results/non-equivs/symbols.ion/read/data/ion-java_2.ion",
+                event: {
+                  event_type: SCALAR,
+                  ion_type: SYMBOL,
+                  value_text: "$ion",
+                  value_binary: [
+                    224,
+                    1,
+                    0,
+                    234,
+                    113,
+                    1
+                  ],
+                  depth: 0
+                },
+                event_index: 9
+              },
+              rhs: {
+                location: "ion-test-driver/test_equivs/results/non-equivs/symbols.ion/read/data/ion-java_1.ion",
+                event: {
+                  event_type: SCALAR,
+                  ion_type: SYMBOL,
+                  value_text: "$ion",
+                  value_binary: [
+                    224,
+                    1,
+                    0,
+                    234,
+                    113,
+                    1
+                  ],
+                  depth: 0
+                },
+                event_index: 24
+              }
+            },
+            {
+              result: "EQUAL",
+              message: "Equivalent values in a non-equivs set.",
+              lhs: {
+                location: "ion-test-driver/test_equivs/results/non-equivs/symbols.ion/read/data/ion-java_2.ion",
+                event: {
+                  event_type: SCALAR,
+                  ion_type: SYMBOL,
+                  value_text: "$ion",
+                  value_binary: [
+                    224,
+                    1,
+                    0,
+                    234,
+                    113,
+                    1
+                  ],
+                  depth: 0
+                },
+                event_index: 9
+              },
+              rhs: {
+                location: "ion-test-driver/test_equivs/results/non-equivs/symbols.ion/read/data/ion-java_2.ion",
+                event: {
+                  event_type: SCALAR,
+                  ion_type: SYMBOL,
+                  value_text: "$ion",
+                  value_binary: [
+                    224,
+                    1,
+                    0,
+                    234,
+                    113,
+                    1
+                  ],
+                  depth: 0
+                },
+                event_index: 24
+              }
+            },
+            {
+              result: "EQUAL",
+              message: "Equivalent values in a non-equivs set.",
+              lhs: {
+                location: "ion-test-driver/test_equivs/results/non-equivs/symbols.ion/read/data/ion-java_2.ion",
+                event: {
+                  event_type: SCALAR,
+                  ion_type: SYMBOL,
+                  value_text: "$ion",
+                  value_binary: [
+                    224,
+                    1,
+                    0,
+                    234,
+                    113,
+                    1
+                  ],
+                  depth: 0
+                },
+                event_index: 9
+              },
+              rhs: {
+                location: "ion-test-driver/test_equivs/build/ion-tests_fb77a08/iontestdata/good/non-equivs/symbols.ion",
+                event: {
+                  event_type: SCALAR,
+                  ion_type: SYMBOL,
+                  value_text: "$ion",
+                  value_binary: [
+                    224,
+                    1,
+                    0,
+                    234,
+                    113,
+                    1
+                  ],
+                  depth: 0
+                },
+                event_index: 24
+              }
+            },
+            {
+              result: "EQUAL",
+              message: "Equivalent values in a non-equivs set.",
+              lhs: {
+                location: "ion-test-driver/test_equivs/build/ion-tests_fb77a08/iontestdata/good/non-equivs/symbols.ion",
+                event: {
+                  event_type: SCALAR,
+                  ion_type: SYMBOL,
+                  value_text: "$ion",
+                  value_binary: [
+                    224,
+                    1,
+                    0,
+                    234,
+                    113,
+                    1
+                  ],
+                  depth: 0
+                },
+                event_index: 9
+              },
+              rhs: {
+                location: "ion-test-driver/test_equivs/results/non-equivs/symbols.ion/read/data/ion-java_1.ion",
+                event: {
+                  event_type: SCALAR,
+                  ion_type: SYMBOL,
+                  value_text: "$ion",
+                  value_binary: [
+                    224,
+                    1,
+                    0,
+                    234,
+                    113,
+                    1
+                  ],
+                  depth: 0
+                },
+                event_index: 24
+              }
+            },
+            {
+              result: "EQUAL",
+              message: "Equivalent values in a non-equivs set.",
+              lhs: {
+                location: "ion-test-driver/test_equivs/build/ion-tests_fb77a08/iontestdata/good/non-equivs/symbols.ion",
+                event: {
+                  event_type: SCALAR,
+                  ion_type: SYMBOL,
+                  value_text: "$ion",
+                  value_binary: [
+                    224,
+                    1,
+                    0,
+                    234,
+                    113,
+                    1
+                  ],
+                  depth: 0
+                },
+                event_index: 9
+              },
+              rhs: {
+                location: "ion-test-driver/test_equivs/results/non-equivs/symbols.ion/read/data/ion-java_2.ion",
+                event: {
+                  event_type: SCALAR,
+                  ion_type: SYMBOL,
+                  value_text: "$ion",
+                  value_binary: [
+                    224,
+                    1,
+                    0,
+                    234,
+                    113,
+                    1
+                  ],
+                  depth: 0
+                },
+                event_index: 24
+              }
+            },
+            {
+              result: "EQUAL",
+              message: "Equivalent values in a non-equivs set.",
+              lhs: {
+                location: "ion-test-driver/test_equivs/build/ion-tests_fb77a08/iontestdata/good/non-equivs/symbols.ion",
+                event: {
+                  event_type: SCALAR,
+                  ion_type: SYMBOL,
+                  value_text: "$ion",
+                  value_binary: [
+                    224,
+                    1,
+                    0,
+                    234,
+                    113,
+                    1
+                  ],
+                  depth: 0
+                },
+                event_index: 9
+              },
+              rhs: {
+                location: "ion-test-driver/test_equivs/build/ion-tests_fb77a08/iontestdata/good/non-equivs/symbols.ion",
+                event: {
+                  event_type: SCALAR,
+                  ion_type: SYMBOL,
+                  value_text: "$ion",
+                  value_binary: [
+                    224,
+                    1,
+                    0,
+                    234,
+                    113,
+                    1
+                  ],
+                  depth: 0
+                },
+                event_index: 24
+              }
+            }
+          ]
+        }
+      },
+      'ion-java_2': {
+        result: FAIL,
+      }
+    },
+ }
+}

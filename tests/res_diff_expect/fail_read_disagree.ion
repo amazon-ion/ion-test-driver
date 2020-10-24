@@ -1,0 +1,24 @@
+$ion_1_0
+{
+ test: {
+  read_compare: {
+   message: "Read_compare: read behavior changed against other implementations.",
+   disagree_lists: {
+    'ion-java_1': [
+     "ion-java_2",
+     "ion-c_1"
+    ],
+    'ion-java_2': [
+     "ion-java_1",
+     "ion-js_1"
+    ]
+   },
+   no_longer_agrees_with: [
+    "ion-js_1"
+   ],
+   now_agrees_with: [
+    "ion-c_1"
+   ]
+  }
+ }
+}

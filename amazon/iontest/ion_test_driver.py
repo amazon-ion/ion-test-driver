@@ -982,7 +982,7 @@ def analyze_results(first_implementation, second_implementation, results_file, o
                 if TestReport.READ_ERROR in first_report.keys() else []
             second_read_error = second_report[TestReport.READ_ERROR] \
                 if TestReport.READ_ERROR in second_report.keys() else []
-            if first_read_error != second_read_error:
+            if not ion_equals(first_read_error, second_read_error):
                 new_errors = []
                 for err in second_read_error:
                     if err not in first_read_error:
@@ -1006,7 +1006,7 @@ def analyze_results(first_implementation, second_implementation, results_file, o
                 if TestReport.ERRORS_FIELD in first_read_compare.keys() else []
             second_read_compare_errors = second_read_compare[TestReport.ERRORS_FIELD] \
                 if TestReport.ERRORS_FIELD in second_read_compare.keys() else []
-            if first_read_compare_errors != second_read_compare_errors:
+            if not ion_equals(first_read_compare_errors, second_read_compare_errors):
                 new_errors = []
                 for err in second_read_compare_errors:
                     if err not in first_read_compare_errors:
@@ -1023,7 +1023,7 @@ def analyze_results(first_implementation, second_implementation, results_file, o
                 if TestReport.COMPARISON_FAILURES_FIELD in first_read_compare.keys() else []
             second_read_compare_failures = second_read_compare[TestReport.COMPARISON_FAILURES_FIELD] \
                 if TestReport.COMPARISON_FAILURES_FIELD in second_read_compare.keys() else []
-            if first_read_compare_failures != second_read_compare_failures:
+            if not ion_equals(first_read_compare_failures, second_read_compare_failures):
                 message = "Read_compare: two revisions have different failures."
                 write_errors_to_report(read_compare_report, first_impl, first_read_compare, second_impl,
                                        second_read_compare, TestReport.COMPARISON_FAILURES_FIELD, message, cur_result,
@@ -1035,7 +1035,7 @@ def analyze_results(first_implementation, second_implementation, results_file, o
             second_disagree_list = find_disagree_list(first_read_compare_failures, second_impl, test_file)
             # analyze disagree list
             if second_impl not in first_disagree_list and first_impl not in second_disagree_list:
-                if first_disagree_list != second_disagree_list:
+                if not ion_equals(first_disagree_list, second_disagree_list):
                     message = "Read_compare: two revisions agree with each other " \
                               "but have different disagree lists. "
                     write_errors_to_report(read_compare_report, first_impl, first_disagree_list, second_impl,
@@ -1066,7 +1066,7 @@ def analyze_results(first_implementation, second_implementation, results_file, o
                 if TestReport.WRITE_ERROR in first_report.keys() else []
             second_write_error = second_report[TestReport.WRITE_ERROR] \
                 if TestReport.WRITE_ERROR in second_report.keys() else []
-            if first_write_error != second_write_error:
+            if not ion_equals(first_write_error, second_write_error):
                 new_errors = []
                 for err in second_write_error:
                     if err not in first_write_error:
@@ -1090,7 +1090,7 @@ def analyze_results(first_implementation, second_implementation, results_file, o
                 if TestReport.ERRORS_FIELD in first_write_compare.keys() else []
             second_write_compare_errors = second_write_compare[TestReport.ERRORS_FIELD] \
                 if TestReport.ERRORS_FIELD in second_write_compare.keys() else []
-            if first_write_compare_errors != second_write_compare_errors:
+            if not ion_equals(first_write_compare_errors, second_write_compare_errors):
                 new_errors = []
                 for err in second_write_compare_errors:
                     if err not in first_write_compare_errors:
@@ -1107,7 +1107,7 @@ def analyze_results(first_implementation, second_implementation, results_file, o
                 if TestReport.COMPARISON_FAILURES_FIELD in first_write_compare.keys() else []
             second_write_compare_failures = second_write_compare[TestReport.COMPARISON_FAILURES_FIELD] \
                 if TestReport.COMPARISON_FAILURES_FIELD in second_write_compare.keys() else []
-            if first_write_compare_failures != second_write_compare_failures:
+            if not ion_equals(first_write_compare_failures, second_write_compare_failures):
                 message = "Write_compare: two revisions have different failures."
                 write_errors_to_report(write_compare_report, first_impl, first_write_compare, second_impl,
                                        second_write_compare, TestReport.COMPARISON_FAILURES_FIELD, message,

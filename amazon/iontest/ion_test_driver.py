@@ -921,6 +921,18 @@ def validate_results(report, result_field, read_error, read_compare, write_error
             raise ValueError("Invalid report: result passes with error(s) for '" + impl + "' in '" + test_file + "'.")
 
 
+def replace_impl_name_for_message(obj, first_impl, second_impl):
+    if '_' not in first_impl or '_' not in second_impl or 'message' not in obj.keys():
+        return
+    obj['message'] = obj['message'].replace(first_impl, first_impl.split('_')[0])
+    obj['message'] = obj['message'].replace(second_impl, second_impl.split('_')[0])
+
+
+def replace_impl_name_for_obj(errors, first_impl, second_impl):
+    for error in errors:
+        replace_impl_name_for_message(error, first_impl, second_impl)
+
+
 def analyze_results(first_implementation, second_implementation, results_file, output_root):
     return_val = 0
     return_err = 1
@@ -972,6 +984,8 @@ def analyze_results(first_implementation, second_implementation, results_file, o
                 if TestReport.READ_ERROR in first_report.keys() else []
             second_read_error = second_report[TestReport.READ_ERROR] \
                 if TestReport.READ_ERROR in second_report.keys() else []
+            replace_impl_name_for_obj(first_read_error, first_impl, second_impl)
+            replace_impl_name_for_obj(second_read_error, first_impl, second_impl)
             if not ion_equals(first_read_error, second_read_error):
                 new_errors = []
                 for err in second_read_error:
@@ -996,6 +1010,8 @@ def analyze_results(first_implementation, second_implementation, results_file, o
                 if TestReport.ERRORS_FIELD in first_read_compare.keys() else []
             second_read_compare_errors = second_read_compare[TestReport.ERRORS_FIELD] \
                 if TestReport.ERRORS_FIELD in second_read_compare.keys() else []
+            replace_impl_name_for_obj(first_read_compare_errors, first_impl, second_impl)
+            replace_impl_name_for_obj(second_read_compare_errors, first_impl, second_impl)
             if not ion_equals(first_read_compare_errors, second_read_compare_errors):
                 new_errors = []
                 for err in second_read_compare_errors:
@@ -1013,6 +1029,8 @@ def analyze_results(first_implementation, second_implementation, results_file, o
                 if TestReport.COMPARISON_FAILURES_FIELD in first_read_compare.keys() else []
             second_read_compare_failures = second_read_compare[TestReport.COMPARISON_FAILURES_FIELD] \
                 if TestReport.COMPARISON_FAILURES_FIELD in second_read_compare.keys() else []
+            replace_impl_name_for_obj(first_read_compare_failures, first_impl, second_impl)
+            replace_impl_name_for_obj(second_read_compare_failures, first_impl, second_impl)
             if not ion_equals(first_read_compare_failures, second_read_compare_failures):
                 message = "Read_compare: two revisions have different failures."
                 write_errors_to_report(read_compare_report, first_impl, first_read_compare, second_impl,
@@ -1056,6 +1074,8 @@ def analyze_results(first_implementation, second_implementation, results_file, o
                 if TestReport.WRITE_ERROR in first_report.keys() else []
             second_write_error = second_report[TestReport.WRITE_ERROR] \
                 if TestReport.WRITE_ERROR in second_report.keys() else []
+            replace_impl_name_for_obj(first_write_error, first_impl, second_impl)
+            replace_impl_name_for_obj(second_write_error, first_impl, second_impl)
             if not ion_equals(first_write_error, second_write_error):
                 new_errors = []
                 for err in second_write_error:
@@ -1080,6 +1100,8 @@ def analyze_results(first_implementation, second_implementation, results_file, o
                 if TestReport.ERRORS_FIELD in first_write_compare.keys() else []
             second_write_compare_errors = second_write_compare[TestReport.ERRORS_FIELD] \
                 if TestReport.ERRORS_FIELD in second_write_compare.keys() else []
+            replace_impl_name_for_obj(first_write_compare_errors, first_impl, second_impl)
+            replace_impl_name_for_obj(second_write_compare_errors, first_impl, second_impl)
             if not ion_equals(first_write_compare_errors, second_write_compare_errors):
                 new_errors = []
                 for err in second_write_compare_errors:
@@ -1097,6 +1119,8 @@ def analyze_results(first_implementation, second_implementation, results_file, o
                 if TestReport.COMPARISON_FAILURES_FIELD in first_write_compare.keys() else []
             second_write_compare_failures = second_write_compare[TestReport.COMPARISON_FAILURES_FIELD] \
                 if TestReport.COMPARISON_FAILURES_FIELD in second_write_compare.keys() else []
+            replace_impl_name_for_obj(first_write_compare_failures, first_impl, second_impl)
+            replace_impl_name_for_obj(second_write_compare_failures, first_impl, second_impl)
             if not ion_equals(first_write_compare_failures, second_write_compare_failures):
                 message = "Write_compare: two revisions have different failures."
                 write_errors_to_report(write_compare_report, first_impl, first_write_compare, second_impl,

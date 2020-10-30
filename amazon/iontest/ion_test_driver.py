@@ -856,41 +856,31 @@ def analyze_list(first_list, second_list, first_impl, second_impl):
     return no_more_agree_list, start_agree_list
 
 
-def append_lists(first_lists, second_lists, append_to_lists):
-    for k in first_lists.keys():
-        if k not in second_lists.keys():
-            append_to_lists[k] = first_lists[k]
+def append_lists(first_lists, second_lists, append_to_lists, second_impl):
+    agree = True
+    for first_file in first_lists.keys():
+        second_file = second_impl + first_file[first_file.find(","):]
+        if second_file not in second_lists.keys():
+            append_to_lists[first_file] = first_lists[first_file]
         else:
-            for impl in first_lists[k]:
-                if impl not in second_lists[k]:
-                    if k not in append_to_lists.keys():
-                        append_to_lists[k] = []
-                    append_to_lists[k].append(impl)
+            for impl in first_lists[first_file]:
+                if impl not in second_lists[second_file]:
+                    if impl == second_file:
+                        agree = False
+                        continue
+                    if first_file not in append_to_lists.keys():
+                        append_to_lists[first_file] = []
+                    append_to_lists[first_file].append(impl)
+    return agree
 
 
-def analyze_lists(first_lists, second_lists):
+def analyze_lists(first_lists, second_lists, first_impl, second_impl):
     no_more_agree_lists = {}
     start_agree_lists = {}
-    append_lists(first_lists, second_lists, start_agree_lists)
-    append_lists(second_lists, first_lists, no_more_agree_lists)
-    return no_more_agree_lists, start_agree_lists
-
-
-def is_name_in_lists(lists, name):
-    for k in lists.keys():
-        if name in lists[k]:
-            return True
-    return False
-
-
-def are_lists_agree(first_lists, second_lists):
-    for k in first_lists.keys():
-        if is_name_in_lists(second_lists, k):
-            return False
-    for k in second_lists.keys():
-        if is_name_in_lists(first_lists, k):
-            return False
-    return True
+    agree_first = append_lists(first_lists, second_lists, start_agree_lists, second_impl)
+    agree_second = append_lists(second_lists, first_lists, no_more_agree_lists, first_impl)
+    agree = agree_first and agree_second
+    return no_more_agree_lists, start_agree_lists, agree
 
 
 def parse_des_for_res_diff(description):
@@ -1117,9 +1107,11 @@ def analyze_results(first_implementation, second_implementation, results_file, o
             # get two disagree lists
             first_disagree_list_for_write = find_disagree_lists_for_write(first_write_compare_failures, first_impl, test_file)
             second_disagree_list_for_write = find_disagree_lists_for_write(second_write_compare_failures, second_impl, test_file)
-            if not are_lists_agree(first_disagree_list_for_write, second_disagree_list_for_write):
-                no_more_agree_lists, start_agree_lists = analyze_lists(first_disagree_list_for_write,
-                                                                       second_disagree_list_for_write)
+            no_more_agree_lists, start_agree_lists, agree = analyze_lists(first_disagree_list_for_write, second_disagree_list_for_write, first_impl, second_impl)
+
+            if any(no_more_agree_lists) or any(start_agree_lists):
+                if not agree:
+                    return_val = return_err
                 write_compare_report = {
                     TestFile.ERROR_MESSAGE_FIELD: "Write_compare: write behavior changed. "
                                                   "Each field within disagree list represents the implementation that "
@@ -1133,7 +1125,6 @@ def analyze_results(first_implementation, second_implementation, results_file, o
                     now_agrees_with: start_agree_lists,
                 }
                 write_to_report(cur_result, final_result, write_compare_report, test_file, TestReport.WRITE_COMPARE)
-                return_val = return_err
                 continue
 
     if '.' in output_root:

@@ -928,7 +928,7 @@ After extracting the two disagree lists, compare the master branch and new commi
 **3.1.** If they agree with each other, their disagree lists should be the same. Raise a `cli compare diff` error if they 
 are not the same.
 **3.2.** If they disagree with each other, write down what implementations that the master commit no longer 
-agrees with and what implementations the new master starts to agree with.
+agrees with and what implementations the master commit starts to agree with.
 4. Check `write_error` - refer to step 2.
 5. Check `write_compare` - refer to step 3.
 

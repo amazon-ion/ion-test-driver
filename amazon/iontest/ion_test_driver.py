@@ -856,41 +856,31 @@ def analyze_list(first_list, second_list, first_impl, second_impl):
     return no_more_agree_list, start_agree_list
 
 
-def append_lists(first_lists, second_lists, append_to_lists):
-    for k in first_lists.keys():
-        if k not in second_lists.keys():
-            append_to_lists[k] = first_lists[k]
+def append_lists(first_lists, second_lists, append_to_lists, second_impl):
+    agree = True
+    for first_file in first_lists.keys():
+        second_file = second_impl + first_file[first_file.find(","):]
+        if second_file not in second_lists.keys():
+            append_to_lists[first_file] = first_lists[first_file]
         else:
-            for impl in first_lists[k]:
-                if impl not in second_lists[k]:
-                    if k not in append_to_lists.keys():
-                        append_to_lists[k] = []
-                    append_to_lists[k].append(impl)
+            for impl in first_lists[first_file]:
+                if impl not in second_lists[second_file]:
+                    if impl == second_file:
+                        agree = False
+                        continue
+                    if first_file not in append_to_lists.keys():
+                        append_to_lists[first_file] = []
+                    append_to_lists[first_file].append(impl)
+    return agree
 
 
-def analyze_lists(first_lists, second_lists):
+def analyze_lists(first_lists, second_lists, first_impl, second_impl):
     no_more_agree_lists = {}
     start_agree_lists = {}
-    append_lists(first_lists, second_lists, start_agree_lists)
-    append_lists(second_lists, first_lists, no_more_agree_lists)
-    return no_more_agree_lists, start_agree_lists
-
-
-def is_name_in_lists(lists, name):
-    for k in lists.keys():
-        if name in lists[k]:
-            return True
-    return False
-
-
-def are_lists_agree(first_lists, second_lists):
-    for k in first_lists.keys():
-        if is_name_in_lists(second_lists, k):
-            return False
-    for k in second_lists.keys():
-        if is_name_in_lists(first_lists, k):
-            return False
-    return True
+    agree_first = append_lists(first_lists, second_lists, start_agree_lists, second_impl)
+    agree_second = append_lists(second_lists, first_lists, no_more_agree_lists, first_impl)
+    agree = agree_first and agree_second
+    return no_more_agree_lists, start_agree_lists, agree
 
 
 def parse_des_for_res_diff(description):
@@ -929,6 +919,27 @@ def validate_results(report, result_field, read_error, read_compare, write_error
         if read_error in report.keys() or read_compare in report.keys() or write_error in report.keys() \
                 or write_compare in report.keys():
             raise ValueError("Invalid report: result passes with error(s) for '" + impl + "' in '" + test_file + "'.")
+
+
+def replace_impl_name_for_message(obj, first_impl, second_impl):
+    """
+    Since we recognize the error type by message, so if two messages show the different texts, we treat them as
+    different errors. Some cli tools include implementations' name in the message field which will make ion-test-driver
+    treat two same issues differently. To avoid this, and make sure an implementation's revision number doesn't affect
+    analysis, we remove all revision number. For example ion-c_abcd1234 will be replaced by ion-c in the message field.
+    :param obj: The object including message field.
+    :param first_impl: first implementation's full name (e.g. ion-java_abcd123).
+    :param second_impl: second implementation's full name (e.g. ion-java_abcd123).
+    """
+    if '_' not in first_impl or '_' not in second_impl or 'message' not in obj.keys():
+        return
+    obj['message'] = obj['message'].replace(first_impl, first_impl.split('_')[0])
+    obj['message'] = obj['message'].replace(second_impl, second_impl.split('_')[0])
+
+
+def replace_impl_name_for_obj(errors, first_impl, second_impl):
+    for error in errors:
+        replace_impl_name_for_message(error, first_impl, second_impl)
 
 
 def analyze_results(first_implementation, second_implementation, results_file, output_root):
@@ -982,6 +993,8 @@ def analyze_results(first_implementation, second_implementation, results_file, o
                 if TestReport.READ_ERROR in first_report.keys() else []
             second_read_error = second_report[TestReport.READ_ERROR] \
                 if TestReport.READ_ERROR in second_report.keys() else []
+            replace_impl_name_for_obj(first_read_error, first_impl, second_impl)
+            replace_impl_name_for_obj(second_read_error, first_impl, second_impl)
             if not ion_equals(first_read_error, second_read_error):
                 new_errors = []
                 for err in second_read_error:
@@ -1006,6 +1019,8 @@ def analyze_results(first_implementation, second_implementation, results_file, o
                 if TestReport.ERRORS_FIELD in first_read_compare.keys() else []
             second_read_compare_errors = second_read_compare[TestReport.ERRORS_FIELD] \
                 if TestReport.ERRORS_FIELD in second_read_compare.keys() else []
+            replace_impl_name_for_obj(first_read_compare_errors, first_impl, second_impl)
+            replace_impl_name_for_obj(second_read_compare_errors, first_impl, second_impl)
             if not ion_equals(first_read_compare_errors, second_read_compare_errors):
                 new_errors = []
                 for err in second_read_compare_errors:
@@ -1023,6 +1038,8 @@ def analyze_results(first_implementation, second_implementation, results_file, o
                 if TestReport.COMPARISON_FAILURES_FIELD in first_read_compare.keys() else []
             second_read_compare_failures = second_read_compare[TestReport.COMPARISON_FAILURES_FIELD] \
                 if TestReport.COMPARISON_FAILURES_FIELD in second_read_compare.keys() else []
+            replace_impl_name_for_obj(first_read_compare_failures, first_impl, second_impl)
+            replace_impl_name_for_obj(second_read_compare_failures, first_impl, second_impl)
             if not ion_equals(first_read_compare_failures, second_read_compare_failures):
                 message = "Read_compare: two revisions have different failures."
                 write_errors_to_report(read_compare_report, first_impl, first_read_compare, second_impl,
@@ -1066,6 +1083,8 @@ def analyze_results(first_implementation, second_implementation, results_file, o
                 if TestReport.WRITE_ERROR in first_report.keys() else []
             second_write_error = second_report[TestReport.WRITE_ERROR] \
                 if TestReport.WRITE_ERROR in second_report.keys() else []
+            replace_impl_name_for_obj(first_write_error, first_impl, second_impl)
+            replace_impl_name_for_obj(second_write_error, first_impl, second_impl)
             if not ion_equals(first_write_error, second_write_error):
                 new_errors = []
                 for err in second_write_error:
@@ -1090,6 +1109,8 @@ def analyze_results(first_implementation, second_implementation, results_file, o
                 if TestReport.ERRORS_FIELD in first_write_compare.keys() else []
             second_write_compare_errors = second_write_compare[TestReport.ERRORS_FIELD] \
                 if TestReport.ERRORS_FIELD in second_write_compare.keys() else []
+            replace_impl_name_for_obj(first_write_compare_errors, first_impl, second_impl)
+            replace_impl_name_for_obj(second_write_compare_errors, first_impl, second_impl)
             if not ion_equals(first_write_compare_errors, second_write_compare_errors):
                 new_errors = []
                 for err in second_write_compare_errors:
@@ -1107,6 +1128,8 @@ def analyze_results(first_implementation, second_implementation, results_file, o
                 if TestReport.COMPARISON_FAILURES_FIELD in first_write_compare.keys() else []
             second_write_compare_failures = second_write_compare[TestReport.COMPARISON_FAILURES_FIELD] \
                 if TestReport.COMPARISON_FAILURES_FIELD in second_write_compare.keys() else []
+            replace_impl_name_for_obj(first_write_compare_failures, first_impl, second_impl)
+            replace_impl_name_for_obj(second_write_compare_failures, first_impl, second_impl)
             if not ion_equals(first_write_compare_failures, second_write_compare_failures):
                 message = "Write_compare: two revisions have different failures."
                 write_errors_to_report(write_compare_report, first_impl, first_write_compare, second_impl,
@@ -1117,9 +1140,11 @@ def analyze_results(first_implementation, second_implementation, results_file, o
             # get two disagree lists
             first_disagree_list_for_write = find_disagree_lists_for_write(first_write_compare_failures, first_impl, test_file)
             second_disagree_list_for_write = find_disagree_lists_for_write(second_write_compare_failures, second_impl, test_file)
-            if not are_lists_agree(first_disagree_list_for_write, second_disagree_list_for_write):
-                no_more_agree_lists, start_agree_lists = analyze_lists(first_disagree_list_for_write,
-                                                                       second_disagree_list_for_write)
+            no_more_agree_lists, start_agree_lists, agree = analyze_lists(first_disagree_list_for_write, second_disagree_list_for_write, first_impl, second_impl)
+
+            if any(no_more_agree_lists) or any(start_agree_lists):
+                if not agree:
+                    return_val = return_err
                 write_compare_report = {
                     TestFile.ERROR_MESSAGE_FIELD: "Write_compare: write behavior changed. "
                                                   "Each field within disagree list represents the implementation that "
@@ -1133,7 +1158,6 @@ def analyze_results(first_implementation, second_implementation, results_file, o
                     now_agrees_with: start_agree_lists,
                 }
                 write_to_report(cur_result, final_result, write_compare_report, test_file, TestReport.WRITE_COMPARE)
-                return_val = return_err
                 continue
 
     if '.' in output_root:

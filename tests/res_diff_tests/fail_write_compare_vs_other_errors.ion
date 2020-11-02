@@ -31,13 +31,9 @@
         },
         'ion-java_2': {
             result:FAIL,
-            write_error: {
-                errors: ErrorReport::[
-                    {
-                      message: "test",
-                    }
-                ]
-            }
+            write_error: ErrorReport::[{
+                    message: "reason two.",
+            }]
         }
 	},
  },

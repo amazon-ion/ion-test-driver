@@ -23,20 +23,10 @@ $ion_1_0
     }
    },
    no_longer_agrees_with: {
-    'ion-java_2,binary,ion-c_1': [
-     "ion-java_1,binary,ion-c_1"
-    ],
-    'ion-java_2,binary,ion-js_1': [
-     "ion-java_1,binary,ion-js_1"
-    ]
    },
    now_agrees_with: {
     'ion-java_1,binary,ion-c_1': [
-     "ion-java_2,binary,ion-c_1",
      "ion-c_1,binary,ion-c_1"
-    ],
-    'ion-java_1,binary,ion-js_1': [
-     "ion-java_2,binary,ion-js_1"
     ]
    }
   }

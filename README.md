@@ -907,11 +907,42 @@ to determine relative compliance between the implementations.
 
 Ultimately, in the spirit of continuous integration, pushing a change to
 any of the implementations (or ion-tests) should update the test
-harness's dependency to the latest version and kick off a test run. It
-remains to be seen if this can be achieved using GitHub's common CI
-plugins (e.g. Travis), or whether it can be achieved using an AWS Code\*
-product. In the meantime, however, it will be sufficient to run the
-ion-test-driver during the normal Travis CI builds of each implementation.
+harness's dependency to the latest version and kick off a test run.
+
+Integrate ion-test-driver into pipeline
+---------------------------------------
+
+The last step is integrating the ion-test-driver into GitHub Actions pipeline to trigger the ion-test-driver for every 
+pull request.
+
+### Result analysis option (--res-diff)
+
+Option --res-diff is able to analyze an existing result file to identify any differences between the two revisions.
+To compare two revisions of each test file:
+1. Compare the two revisions `result` field, and if they both pass, then proceed to the next file. 
+Otherwise proceed to the next step.
+2. Check `read_error` field. If both of them have the same read_error or don't have any errors, proceed to the next step. 
+Otherwise, write `read performance changed` error to the final report and then move on to the next step.
+3. Check `read_compare` field. Analyze the given read_compare report and find all the disagree revision pairs. 
+After extracting the two disagree lists, compare the master branch and new commit using these two cases:
+**3.1.** If they agree with each other, their disagree lists should be the same. Raise a `cli compare diff` error if they 
+are not the same.
+**3.2.** If they disagree with each other, write down what implementations that the master commit no longer 
+agrees with and what implementations the new master starts agree with.
+4. Check `write_error` - refer to step 2.
+5. Check `write_compare` - refer to step 3.
+
+### GitHub Actions files
+
+The GitHub Actions logic is under each implementation's `.github/workflow` direction. 
+
+### Workflow procedure
+
+The workflow of the pipeline follows the steps stated below when a PR is created in a implementation:
+1. Running ion-test-driver and including the new commit in it.
+2. Using --res-diff option to analyze the result from the step above and find the difference between HEAD and the new 
+commit of the implementations.
+3. If the new commit changes reader/writer behaviors and analysis result returns a non-zero value, open an issue for it.
 
 Implementation plan
 -------------------

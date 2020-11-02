@@ -922,6 +922,15 @@ def validate_results(report, result_field, read_error, read_compare, write_error
 
 
 def replace_impl_name_for_message(obj, first_impl, second_impl):
+    """
+    Since we recognize the error type by message, so if two messages show the different texts, we treat them as
+    different errors. Some cli tools include implementations' name in the message field which will make ion-test-driver
+    treat two same issues differently. To avoid this, and make sure an implementation's revision number doesn't affect
+    analysis, we remove all revision number. For example ion-c_abcd1234 will be replaced by ion-c in the message field.
+    :param obj: The object including message field.
+    :param first_impl: first implementation's full name (e.g. ion-java_abcd123).
+    :param second_impl: second implementation's full name (e.g. ion-java_abcd123).
+    """
     if '_' not in first_impl or '_' not in second_impl or 'message' not in obj.keys():
         return
     obj['message'] = obj['message'].replace(first_impl, first_impl.split('_')[0])

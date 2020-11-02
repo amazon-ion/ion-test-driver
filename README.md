@@ -915,11 +915,11 @@ Integrate ion-test-driver into pipeline
 The last step is integrating the ion-test-driver into GitHub Actions pipeline to trigger the ion-test-driver for every 
 pull request.
 
-### Result analysis option (--res-diff)
+### Result analysis option (--results-diff)
 
-Option --res-diff is able to analyze an existing result file to identify any differences between the two revisions.
+Option --results-diff is able to analyze an existing result file to identify any differences between the two revisions.
 To compare two revisions of each test file:
-1. Compare the two revisions `result` field, and if they both pass, then proceed to the next file. 
+1. Compare the two revisions' `result` field, and if they both pass, then proceed to the next file. 
 Otherwise proceed to the next step.
 2. Check `read_error` field. If both of them have the same read_error or don't have any errors, proceed to the next step. 
 Otherwise, write `read performance changed` error to the final report and then move on to the next step.
@@ -928,19 +928,19 @@ After extracting the two disagree lists, compare the master branch and new commi
 **3.1.** If they agree with each other, their disagree lists should be the same. Raise a `cli compare diff` error if they 
 are not the same.
 **3.2.** If they disagree with each other, write down what implementations that the master commit no longer 
-agrees with and what implementations the new master starts agree with.
+agrees with and what implementations the new master starts to agree with.
 4. Check `write_error` - refer to step 2.
 5. Check `write_compare` - refer to step 3.
 
 ### GitHub Actions files
 
-The GitHub Actions logic is under each implementation's `.github/workflow` direction. 
+The GitHub Actions logic is under each implementation's `.github/workflow` directory. 
 
 ### Workflow procedure
 
-The workflow of the pipeline follows the steps stated below when a PR is created in a implementation:
+The workflow of the pipeline follows the steps stated below when a PR is created in an implementation:
 1. Running ion-test-driver and including the new commit in it.
-2. Using --res-diff option to analyze the result from the step above and find the difference between HEAD and the new 
+2. Using --results-diff option to analyze the result from the step above and find the difference between HEAD and the new 
 commit of the implementations.
 3. If the new commit changes reader/writer behaviors and analysis result returns a non-zero value, open an issue for it.
 

@@ -934,7 +934,7 @@ agrees with and what implementations the master commit starts to agree with.
 
 ### GitHub Actions files
 
-The GitHub Actions logic is under each implementation's `.github/workflow` directory. 
+The GitHub Actions logic is located in each implementation's `.github/workflow/ion-test-driver.yml`. 
 
 ### Workflow procedure
 

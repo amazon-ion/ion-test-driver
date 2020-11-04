@@ -1074,8 +1074,9 @@ def analyze_results(first_implementation, second_implementation, results_file, o
                     now_agrees_with: start_agree_list
                 }
                 write_to_report(cur_result, final_result, read_compare_report, test_file, TestReport.READ_COMPARE)
-                return_val = return_err
-                continue
+                if any(no_more_agree_list):
+                    return_val = return_err
+                    continue
 
             # Step four analyze write_error field
             write_report = {}

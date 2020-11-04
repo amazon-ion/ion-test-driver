@@ -922,15 +922,6 @@ def validate_results(report, result_field, read_error, read_compare, write_error
 
 
 def replace_impl_name_for_message(obj, first_impl, second_impl):
-    """
-    Since we recognize the error type by message, so if two messages show the different texts, we treat them as
-    different errors. Some cli tools include implementations' name in the message field which will make ion-test-driver
-    treat two same issues differently. To avoid this, and make sure an implementation's revision number doesn't affect
-    analysis, we remove all revision number. For example ion-c_abcd1234 will be replaced by ion-c in the message field.
-    :param obj: The object including message field.
-    :param first_impl: first implementation's full name (e.g. ion-java_abcd123).
-    :param second_impl: second implementation's full name (e.g. ion-java_abcd123).
-    """
     if '_' not in first_impl or '_' not in second_impl or 'message' not in obj.keys():
         return
     obj['message'] = obj['message'].replace(first_impl, first_impl.split('_')[0])
@@ -938,6 +929,16 @@ def replace_impl_name_for_message(obj, first_impl, second_impl):
 
 
 def replace_impl_name_for_obj(errors, first_impl, second_impl):
+    """
+    Since we are able to recognize the error type using the message provided, if two messages show the different texts,
+    we will treat them as different errors. Some cli tools include the implementations' name in the message field which
+    will make the ion-test-driver treat the two issues differently even if they are the same. To avoid this, and to
+    make sure an implementation's revision number doesn't affect our analysis, we will remove all revision numbers.
+    For example, ion-c_abcd1234 will be replaced by ion-c in the message field.
+    :param errors: The list including multiple error objects.
+    :param first_impl: first implementation's full name (e.g. ion-java_abcd123).
+    :param second_impl: second implementation's full name (e.g. ion-java_abcd123).
+    """
     for error in errors:
         replace_impl_name_for_message(error, first_impl, second_impl)
 

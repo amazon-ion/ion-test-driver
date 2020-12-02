@@ -1203,11 +1203,9 @@ def ion_test_driver(arguments):
             os.makedirs(output_root)
         implementations = parse_implementations(arguments['--implementation'], output_root)
         if arguments['--specific-desc']:
-            print(arguments['--specific-desc'])
             replace_default_impl(arguments['--specific-desc'])
         if not arguments['--local-only']:
             implementations += parse_implementations(ION_IMPLEMENTATIONS, output_root)
-        print(ION_IMPLEMENTATIONS)
         check_tool_dependencies(arguments)
         for implementation in implementations:
             implementation.install()

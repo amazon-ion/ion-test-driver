@@ -17,7 +17,7 @@
 Usage:
     ion_test_driver.py [--implementation <description>]... [--ion-tests <description>] [--test <type>]...
                        [--local-only] [--cmake <path>] [--git <path>] [--maven <path>] [--java <path>] [--npm <path>]
-                       [--node <path>] [--output-dir <dir>] [--results-file <file>] [--specific-desc <desc>]
+                       [--node <path>] [--output-dir <dir>] [--results-file <file>] [--replace <desc>]
                        [<test_file>]...
     ion_test_driver.py --results-diff <first_description> <second_description> <results_file> [--output-dir <dir>]
     ion_test_driver.py (--list)
@@ -64,7 +64,7 @@ Options:
                                         The order of two implementations matters and the analysis result is based on the
                                         first implementation.
 
-    -s, --specific-desc <description>   Replace a default implementation by the specific description.
+    --replace <description>             Replace a default implementation by the specific description.
 
     -t, --test <type>                   Perform a particular test type or types, chosen from `good`, `bad`, `equivs`,
                                         `non-equivs`, and `all`. [default: all]
@@ -753,8 +753,7 @@ def parse_implementations(descriptions, output_root):
 
 
 def replace_default_impl(desc):
-    desc_array = desc.split(',')
-    name = desc_array[0]
+    name = desc.split(',')[0]
     for i in range(len(ION_IMPLEMENTATIONS)):
         if ION_IMPLEMENTATIONS[i].split(',')[0] == name:
             ION_IMPLEMENTATIONS[i] = desc
@@ -1202,8 +1201,8 @@ def ion_test_driver(arguments):
         if not os.path.exists(output_root):
             os.makedirs(output_root)
         implementations = parse_implementations(arguments['--implementation'], output_root)
-        if arguments['--specific-desc']:
-            replace_default_impl(arguments['--specific-desc'])
+        if arguments['--replace']:
+            replace_default_impl(arguments['--replace'])
         if not arguments['--local-only']:
             implementations += parse_implementations(ION_IMPLEMENTATIONS, output_root)
         check_tool_dependencies(arguments)

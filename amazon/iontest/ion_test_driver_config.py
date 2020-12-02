@@ -78,3 +78,4 @@ ION_IMPLEMENTATIONS = [
     'ion-js,https://github.com/amzn/ion-js.git,master'
     # TODO add more Ion implementations here
 ]
+

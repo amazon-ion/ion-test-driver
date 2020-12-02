@@ -17,7 +17,8 @@
 Usage:
     ion_test_driver.py [--implementation <description>]... [--ion-tests <description>] [--test <type>]...
                        [--local-only] [--cmake <path>] [--git <path>] [--maven <path>] [--java <path>] [--npm <path>]
-                       [--node <path>] [--output-dir <dir>] [--results-file <file>] [<test_file>]...
+                       [--node <path>] [--output-dir <dir>] [--results-file <file>] [--specific-desc <desc>]
+                       [<test_file>]...
     ion_test_driver.py --results-diff <first_description> <second_description> <results_file> [--output-dir <dir>]
     ion_test_driver.py (--list)
     ion_test_driver.py (-h | --help)
@@ -62,6 +63,8 @@ Options:
                                         results file to identify any differences between the two implementations.
                                         The order of two implementations matters and the analysis result is based on the
                                         first implementation.
+
+    -s, --specific-desc <description>   Replace a default implementation by the specific description.
 
     -t, --test <type>                   Perform a particular test type or types, chosen from `good`, `bad`, `equivs`,
                                         `non-equivs`, and `all`. [default: all]
@@ -749,6 +752,14 @@ def parse_implementations(descriptions, output_root):
             for description in descriptions]
 
 
+def replace_default_impl(desc):
+    desc_array = desc.split(',')
+    name = desc_array[0]
+    for i in range(len(ION_IMPLEMENTATIONS)):
+        if ION_IMPLEMENTATIONS[i].split(',')[0] == name:
+            ION_IMPLEMENTATIONS[i] = desc
+
+
 def write_errors(report, first_field, first_report, second_field, second_report, field, msg):
     report[TestFile.ERROR_MESSAGE_FIELD] = msg
     errors = {}
@@ -1191,8 +1202,12 @@ def ion_test_driver(arguments):
         if not os.path.exists(output_root):
             os.makedirs(output_root)
         implementations = parse_implementations(arguments['--implementation'], output_root)
+        if arguments['--specific-desc']:
+            print(arguments['--specific-desc'])
+            replace_default_impl(arguments['--specific-desc'])
         if not arguments['--local-only']:
             implementations += parse_implementations(ION_IMPLEMENTATIONS, output_root)
+        print(ION_IMPLEMENTATIONS)
         check_tool_dependencies(arguments)
         for implementation in implementations:
             implementation.install()

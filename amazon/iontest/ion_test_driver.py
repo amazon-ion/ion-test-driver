@@ -17,7 +17,7 @@
 Usage:
     ion_test_driver.py [--implementation <description>]... [--ion-tests <description>] [--test <type>]...
                        [--local-only] [--cmake <path>] [--git <path>] [--maven <path>] [--java <path>] [--npm <path>]
-                       [--node <path>] [--output-dir <dir>] [--results-file <file>] [--replace <desc>]
+                       [--node <path>] [--output-dir <dir>] [--results-file <file>] [--replace <description>]
                        [<test_file>]...
     ion_test_driver.py --results-diff <first_description> <second_description> <results_file> [--output-dir <dir>]
     ion_test_driver.py (--list)

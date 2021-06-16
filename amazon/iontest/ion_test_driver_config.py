@@ -22,6 +22,7 @@ from amazon.iontest.ion_test_driver_util import IonBuild, NO_OP_BUILD, log_call
 
 RESULTS_FILE_DEFAULT = 'ion-test-driver-results.ion'
 ION_TESTS_SOURCE = 'https://github.com/amzn/ion-tests.git'
+RETRY_TIME = 2
 
 # Tools expected to be present on the system. Key: name, value: path. Paths may be overridden using --<name>.
 # Accordingly, if tool dependencies are added here, a corresponding option should be added to the CLI.

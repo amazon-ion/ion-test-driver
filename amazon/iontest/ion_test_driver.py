@@ -85,7 +85,7 @@ from amazon.ion.util import Enum
 from docopt import docopt
 
 from amazon.iontest.ion_test_driver_config import TOOL_DEPENDENCIES, ION_BUILDS, ION_IMPLEMENTATIONS, ION_TESTS_SOURCE, \
-    RESULTS_FILE_DEFAULT, TOOL_TEST_COMMAND
+    RESULTS_FILE_DEFAULT, TOOL_TEST_COMMAND, RETRY_ATTEMPTS
 from amazon.iontest.ion_test_driver_util import COMMAND_SHELL, log_call
 
 
@@ -1206,8 +1206,17 @@ def ion_test_driver(arguments):
         if not arguments['--local-only']:
             implementations += parse_implementations(ION_IMPLEMENTATIONS, output_root)
         check_tool_dependencies(arguments)
-        for implementation in implementations:
-            implementation.install()
+        for n in range(RETRY_ATTEMPTS):
+            try:
+                for implementation in implementations:
+                    implementation.install()
+                break
+            except Exception as e:
+                if n < RETRY_ATTEMPTS - 1:
+                    print('Retry installation, attempts: %d.' % (n + 1))
+                    continue
+                else:
+                    raise e
         ion_tests_source = arguments['--ion-tests']
         if not ion_tests_source:
             ion_tests_source = ION_TESTS_SOURCE

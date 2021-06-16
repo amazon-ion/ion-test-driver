@@ -1212,7 +1212,7 @@ def ion_test_driver(arguments):
                     implementation.install()
                 break
             except Exception as e:
-                if n is not RETRY_TIME - 1:
+                if n < RETRY_TIME - 1:
                     print('Retry installation, attempts: %d.' % (n + 1))
                     continue
                 else:

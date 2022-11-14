@@ -29,7 +29,6 @@ RETRY_ATTEMPTS = 2
 TOOL_DEPENDENCIES = {
     'cmake': 'cmake',
     'git': 'git',
-    'maven': 'mvn',
     'npm': 'npm',
     'node': 'node',
     'java': 'java'
@@ -39,7 +38,6 @@ TOOL_DEPENDENCIES = {
 TOOL_TEST_COMMAND = {
     'cmake': '--help',
     'git': '--help',
-    'maven': '--help',
     'npm': '-v',
     'node': '-v',
     'java': '-version'
@@ -52,7 +50,7 @@ def install_ion_c(log):
 
 
 def install_ion_java(log):
-    log_call(log, (TOOL_DEPENDENCIES['maven'], '-f', 'ion-java-cli/pom.xml', 'package'))
+    log_call(log, ('./ion-test-driver-setup'))
 
 
 def install_ion_js(log):
@@ -64,8 +62,7 @@ def install_ion_js(log):
 ION_BUILDS = {
     'ion-c': IonBuild(install_ion_c, os.path.join('tools', 'cli', 'ion'), ()),
     'ion-tests': NO_OP_BUILD,
-    'ion-java': IonBuild(install_ion_java, os.path.join('ion-java-cli', 'target', 'ion-java-cli-1.0.jar'),
-                         (TOOL_DEPENDENCIES['java'], "-jar")),
+    'ion-java': IonBuild(install_ion_java, './ion-test-driver-run', ()),
     'ion-js': IonBuild(install_ion_js, os.path.join('test-driver', 'dist', 'Cli.js'),
                        (TOOL_DEPENDENCIES['node'],))
     # TODO add more implementations here

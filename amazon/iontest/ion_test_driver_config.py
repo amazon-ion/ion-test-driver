@@ -21,7 +21,7 @@ import os
 from amazon.iontest.ion_test_driver_util import IonBuild, NO_OP_BUILD, log_call
 
 RESULTS_FILE_DEFAULT = 'ion-test-driver-results.ion'
-ION_TESTS_SOURCE = 'https://github.com/amzn/ion-tests.git'
+ION_TESTS_SOURCE = 'https://github.com/amazon-ion/ion-tests.git'
 RETRY_ATTEMPTS = 2
 
 # Tools expected to be present on the system. Key: name, value: path. Paths may be overridden using --<name>.
@@ -71,8 +71,8 @@ ION_BUILDS = {
 # Ion implementations hosted in Github. Local implementations may be tested using the `--implementation` argument,
 # and should not be added here. For the proper description format, see the ion_test_driver CLI help.
 ION_IMPLEMENTATIONS = [
-    'ion-c,https://github.com/amzn/ion-c.git,master',
-    'ion-java,https://github.com/amzn/ion-java.git,master',
-    'ion-js,https://github.com/amzn/ion-js.git,master'
+    'ion-c,https://github.com/amazon-ion/ion-c.git,master',
+    'ion-java,https://github.com/amazon-ion/ion-java.git,master',
+    'ion-js,https://github.com/amazon-ion/ion-js.git,master'
     # TODO add more Ion implementations here
 ]

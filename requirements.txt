@@ -1,5 +1,5 @@
-py==1.10.0
-pytest==6.2.4
-pytest-runner==5.3.1
+py>=1.10.0
+pytest>=6.2.4
+pytest-runner>=5.3.1
 amazon.ion==0.8.0
-docopt==0.6.2
+docopt>=0.6.2

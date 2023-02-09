@@ -21,6 +21,6 @@ jobs:
         run: python3 -m venv ./venv && . venv/bin/activate
 
       - run: pip install --upgrade setuptools
-      - run: pip install -r requirements.txt
+      - run: pip install --use-pep517 -r requirements.txt
       - run: pip install .
       - run: python amazon/iontest/ion_test_driver.py --help

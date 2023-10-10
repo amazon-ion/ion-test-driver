@@ -374,6 +374,13 @@ def test_type_from_str(name):
         return TestType.EQUIV_TIMELINE
     raise ValueError("Given string '%s' does not map to a known TestType" % name)
 
+def test_dir_from_version(version):
+    if "1.0" == version:
+        return "iontestdata_1_0"
+    elif "1.1" == version:
+        return "iontestdata_1_1"
+    raise ValueError("Unknown Ion version: %s" % version)
+
 
 class TestFile:
     ERROR_TYPE_FIELD = 'error_type'
@@ -580,11 +587,12 @@ def generate_test_files(tests_dir, test_types, test_file_filter, results_root, i
                     continue
             yield TestFile(test_type, full_test_file, results_root, ion_implementations)
 
-    test_file_root = os.path.abspath(os.path.join(tests_dir, 'iontestdata'))
+    version_test_dir = test_dir_from_version("1.0")
+    test_file_root = os.path.abspath(os.path.join(tests_dir, version_test_dir))
     if not os.path.exists(test_file_root):
         raise ValueError("Invalid ion-tests directory. Could not find test files.")
     for root, dirs, files in os.walk(test_file_root):
-        if os.path.join('iontestdata', str(TestType.GOOD)) in root:
+        if os.path.join(version_test_dir, str(TestType.GOOD)) in root:
             if os.path.join(str(TestType.GOOD), str(TestType.EQUIVS)) in root and TestType.EQUIVS in test_types:
                 for equivs_file in filter_files(TestType.EQUIVS):
                     yield equivs_file
@@ -599,7 +607,7 @@ def generate_test_files(tests_dir, test_types, test_file_filter, results_root, i
             elif TestType.GOOD in test_types:
                 for good_file in filter_files(TestType.GOOD):
                     yield good_file
-        elif os.path.join('iontestdata', str(TestType.BAD)) in root and TestType.BAD in test_types:
+        elif os.path.join(version_test_dir, str(TestType.BAD)) in root and TestType.BAD in test_types:
             for bad_file in filter_files(TestType.BAD):
                 yield bad_file
 

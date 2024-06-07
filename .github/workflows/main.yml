@@ -13,12 +13,12 @@ jobs:
     steps:
       - uses: actions/checkout@v3
       - name: Set up Python
-        uses: actions/setup-python@v3
+        uses: actions/setup-python@v5
         with:
-          python-version: ${{ matrix.python-version }}
+          python-version: ${{ matrix.python }}
 
       - name: Create a virtual environment
-        run: python3 -m venv ./venv && . venv/bin/activate
+        run: python -m venv ./venv && . venv/bin/activate
 
       - run: pip install --upgrade setuptools
       - run: pip install --use-pep517 -r requirements.txt

@@ -376,7 +376,7 @@ def test_type_from_str(name):
 
 def test_dir_from_version(version):
     if "1.0" == version:
-        return "iontestdata_1_0"
+        return "iontestdata"
     elif "1.1" == version:
         return "iontestdata_1_1"
     raise ValueError("Unknown Ion version: %s" % version)

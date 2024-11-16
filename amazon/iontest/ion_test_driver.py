@@ -41,11 +41,12 @@ Options:
     -i, --implementation <description>  Test an additional implementation specified by a description of the form
                                         name,location,revision. Name must match one of the names returned by `--list`.
                                         Location may be a local path or a URL. Revision is optional, may be either a
-                                        branch name or commit hash, and defaults to `master`.
+                                        branch name or commit hash, and defaults to the repository's default branch.
 
     -I, --ion-tests <description>       Override the default ion-tests location by providing a description of the form
                                         location,revision. Location may be a local path or a URL. Revision is optional,
-                                        may be either a branch name or commit hash, and defaults to `master`.
+                                        may be either a branch name or commit hash, and defaults to the repository's
+                                        default branch.
 
     -l, --list                          List the implementations that can be built by this tool.
 
@@ -175,7 +176,10 @@ class IonResource:
             shutil.rmtree(tmp_dir_root)
 
     def install(self):
-        print('Installing %s revision %s.' % (self._name, self.__revision))
+        if self.__revision is None:
+            print('Installing %s default branch.' % (self._name, ))
+        else:
+            print('Installing %s revision %s.' % (self._name, self.__revision))
         self.__git_clone_revision()
         os.chdir(self._build_dir)
         self._build.install(self.__build_log)
@@ -744,7 +748,7 @@ def tokenize_description(description, has_name):
     if not has_name:
         max_components = 2
     if len(components) < max_components:
-        revision = 'master'
+        revision = None
     else:
         revision = components[max_components - 1]
     if len(components) < max_components - 1:

@@ -71,8 +71,8 @@ ION_BUILDS = {
 # Ion implementations hosted in Github. Local implementations may be tested using the `--implementation` argument,
 # and should not be added here. For the proper description format, see the ion_test_driver CLI help.
 ION_IMPLEMENTATIONS = [
-    'ion-c,https://github.com/amazon-ion/ion-c.git,master',
-    'ion-java,https://github.com/amazon-ion/ion-java.git,master',
-    'ion-js,https://github.com/amazon-ion/ion-js.git,master'
+    'ion-c,https://github.com/amazon-ion/ion-c.git',
+    'ion-java,https://github.com/amazon-ion/ion-java.git',
+    'ion-js,https://github.com/amazon-ion/ion-js.git'
     # TODO add more Ion implementations here
 ]
